@@ -14,7 +14,7 @@ import path from "node:path";
 import { DocMap } from "../src/extract/docMap";
 import { buildMapInput, type MapInputMode, type PageRef } from "../src/extract/mapInput";
 import { regionIds, type PageTriage } from "../src/extract/triage";
-import { findQuote } from "../src/extract/anchors";
+import { locateSections } from "../src/extract/anchors";
 import type { PageData } from "../src/extract/pageData";
 import { docsFor } from "../src/extract/patterns";
 
@@ -80,15 +80,14 @@ function check(map: DocMap, pages: PageRef[], pattern: string): string[] {
     for (const r of [...c.regionIds, ...c.legendRegionIds]) if (!regions.has(r) && !/^p\d+$/.test(r)) problems.push(`chart ${c.id}: unknown region ${r}`);
     for (const i of c.sizes) if (i < 0 || i >= map.sizes.length) problems.push(`chart ${c.id}: size index ${i} out of range`);
   }
-  for (const s of map.sections) {
-    const ref = pages.find((p) => p.page === s.startPage);
-    if (!ref) {
-      problems.push(`section ${s.id}: start page ${s.startPage} doesn't exist`);
-      continue;
-    }
-    const data: PageData = JSON.parse(fs.readFileSync(path.join("data/raw", ref.doc, "pages", `p${String(ref.docPage).padStart(2, "0")}.json`), "utf8"));
-    if (findQuote(data, s.startQuote) < 0) problems.push(`section ${s.id}: start quote not found on p${s.startPage}: "${s.startQuote}"`);
-  }
+  const load = (n: number): PageData | undefined => {
+    const ref = pages.find((p) => p.page === n);
+    return ref && JSON.parse(fs.readFileSync(path.join("data/raw", ref.doc, "pages", `p${String(ref.docPage).padStart(2, "0")}.json`), "utf8"));
+  };
+  locateSections(map.sections, load).forEach((pos, i) => {
+    const s = map.sections[i];
+    if (!pos) problems.push(`section ${s.id}: start quote not found on p${s.startPage} (after the previous section): "${s.startQuote}"`);
+  });
   for (const s of map.sections)
     for (const ch of s.choices) if (!map.options.some((o) => o.choices.includes(ch))) problems.push(`section ${s.id}: unknown choice ${ch}`);
   return problems;

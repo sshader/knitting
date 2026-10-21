@@ -79,7 +79,7 @@ def main(pdf_path, out_dir):
             for l in b.get("lines", []):
                 for s in l["spans"]:
                     if s["text"].strip():
-                        spans.append({"t": s["text"], "font": s["font"], "size": round(s["size"], 1),
+                        spans.append({"t": s["text"], "blk": b["number"], "font": s["font"], "size": round(s["size"], 1),
                                       "bold": bool(s["flags"] & 16), "color": s["color"],
                                       "b": [round(s["bbox"][0]/w, 4), round(s["bbox"][1]/h, 4),
                                             round(s["bbox"][2]/w, 4), round(s["bbox"][3]/h, 4)]})

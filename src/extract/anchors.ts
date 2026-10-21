@@ -1,8 +1,10 @@
 import type { BBox, PageData } from "./pageData";
+import { inReadingOrder } from "./readingOrder";
 
 /**
  * Locating quoted text in a page's words (from the PDF text layer), so LLM
  * output can point at exact places: section starts now, row sources later.
+ * Word indices are in reading order (see readingOrder.ts).
  */
 
 const norm = (t: string) =>
@@ -17,10 +19,31 @@ const norm = (t: string) =>
  * order; -1 if absent. Short quotes like "Body" can also occur mid-sentence, so
  * a match starting a line (where headings sit) wins over an earlier one.
  */
-export function findQuote(p: PageData, quote: string): number {
-  const all = matches(p, quote);
+export function findQuote(page: PageData, quote: string, after = -1): number {
+  const p = inReadingOrder(page);
+  const all = matches(p, quote).filter((i) => i > after);
   const lineStart = (i: number) => i === 0 || p.words[i - 1].blk !== p.words[i].blk || p.words[i - 1].ln !== p.words[i].ln;
   return all.find(lineStart) ?? all[0] ?? -1;
+}
+
+/**
+ * Start positions of consecutive sections, each searched for after the
+ * previous one, so repeated openings ("Rnd 1: k all sts to end of rnd." for
+ * two sleeve options) resolve in order. Null where a quote isn't found.
+ */
+export function locateSections(
+  sections: { startPage: number; startQuote: string }[],
+  page: (n: number) => PageData | undefined,
+): (Pos | null)[] {
+  let prev: Pos | null = null;
+  return sections.map((s) => {
+    const p = page(s.startPage);
+    const after = prev && prev.page === s.startPage ? prev.word : -1;
+    const word = p ? findQuote(p, s.startQuote, after) : -1;
+    const pos = word >= 0 ? { page: s.startPage, word } : null;
+    if (pos) prev = pos;
+    return pos;
+  });
 }
 
 function matches(p: PageData, quote: string): number[] {
@@ -54,7 +77,7 @@ export function rangeBoxes(pages: Map<number, PageData>, start: Pos, end: Pos | 
   const out: { page: number; boxes: BBox[] }[] = [];
   const nums = [...pages.keys()].sort((a, b) => a - b).filter((n) => n >= start.page && (!end || n <= end.page));
   for (const n of nums) {
-    const words = pages.get(n)!.words;
+    const words = inReadingOrder(pages.get(n)!).words;
     const from = n === start.page ? start.word : 0;
     const to = end && n === end.page ? end.word : words.length;
     const lines = new Map<string, BBox>();

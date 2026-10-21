@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { findQuote, rangeBoxes, type Pos } from "../../extract/anchors";
+import { locateSections, rangeBoxes } from "../../extract/anchors";
 import type { DocMap } from "../../extract/docMap";
 import type { PageRef } from "../../extract/mapInput";
 import type { BBox, PageData } from "../../extract/pageData";
@@ -67,19 +67,16 @@ export function MapReader({
   const { textBoxes, missing } = useMemo(() => {
     const out = new Map<number, BBox[]>();
     if (!view.section) return { textBoxes: out, missing: null };
-    const { s, next } = view.section;
-    const at = (page: number, quote: string): Pos | null => {
-      const d = data.get(page);
-      const w = d ? findQuote(d, quote) : -1;
-      return w >= 0 ? { page, word: w } : null;
-    };
-    const start = at(s.startPage, s.startQuote);
+    const { s } = view.section;
+    const i = map.sections.indexOf(s);
+    const positions = locateSections(map.sections, (n) => data.get(n));
+    const start = positions[i];
     if (!start) return { textBoxes: out, missing: data.has(s.startPage) ? s.startQuote : null };
-    const end = next ? at(next.startPage, next.startQuote) : null;
+    const end = positions[i + 1] ?? null;
     const textData = new Map([...data].filter(([n]) => view.pages.includes(n)));
     for (const { page, boxes } of rangeBoxes(textData, start, end)) out.set(page, boxes);
     return { textBoxes: out, missing: null };
-  }, [view, data]);
+  }, [view, data, map]);
 
   const title =
     target.kind === "page"

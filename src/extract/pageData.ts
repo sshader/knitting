@@ -7,7 +7,7 @@ export interface PageData {
   width: number;
   height: number;
   words: { t: string; b: BBox; blk: number; ln: number }[];
-  spans: { t: string; font: string; size: number; bold: boolean; color: number; b: BBox }[];
+  spans: { t: string; blk: number; font: string; size: number; bold: boolean; color: number; b: BBox }[];
   drawings: { b: BBox; fill: number[] | null; stroke: number[] | null }[];
   images: {
     /** Placement box; can extend past clips and the page. */

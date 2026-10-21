@@ -1,4 +1,5 @@
 import { area, type BBox, type PageData } from "./pageData";
+import { inReadingOrder } from "./readingOrder";
 
 /**
  * A page's text as lightweight markdown, in PDF reading order:
@@ -10,7 +11,8 @@ import { area, type BBox, type PageData } from "./pageData";
  * - text inside `omit` boxes (drawn charts) is replaced by a placeholder line
  *   so chart glyphs don't flood the output.
  */
-export function pageMarkdown(p: PageData, omit: { id: string; bbox: BBox }[] = []): string {
+export function pageMarkdown(page: PageData, omit: { id: string; bbox: BBox }[] = []): string {
+  const p = inReadingOrder(page);
   const inside = (b: BBox) => omit.find((o) => area(intersect(o.bbox, b)) > 0.5 * area(b));
   const kept = p.spans.filter((s) => !inside(s.b));
 
