@@ -53,7 +53,9 @@ export function TriageInspector() {
 
   useEffect(() => {
     if (!slug) return;
-    history.replaceState(null, "", `?p=${slug}`);
+    const params = new URLSearchParams(location.search);
+    params.set("p", slug);
+    history.replaceState(null, "", `?${params}`);
     setOpen(null);
     Promise.all([getJson<PageTriage[]>(`/data/triage/${slug}.json`), getJson<TriageFixture>(`/api/fixtures/triage/${slug}`)])
       .then(([p, f]) => {

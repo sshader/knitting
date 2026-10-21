@@ -288,3 +288,11 @@ function mergeRegions(regions: ChartRegion[]): ChartRegion[] {
 function intersect(a: BBox, b: BBox): BBox {
   return [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
 }
+
+/** Stable ids for a page's detected regions: "p7.c1" for charts, "p3.i2" for content images. */
+export function regionIds(p: PageTriage) {
+  return {
+    charts: p.charts.map((c, i) => ({ id: `p${p.page}.c${i + 1}`, region: c })),
+    images: p.images.map((im, i) => ({ id: `p${p.page}.i${i + 1}`, bbox: im.bbox, coverage: im.coverage })),
+  };
+}
