@@ -24,17 +24,17 @@ Goals, in priority order:
 2. Followability. A knitter should be able to step through nodes in order and always know what to do on the current row.
 
 Structure:
-- "nodes" is a flat list in reading order. Top-level sections have parentId null. Children of sections/repeats point at them via parentId.
+- "nodes" is a flat list in reading order. Top-level sections have parentId "". Fields that do not apply to a node kind are "", [], 0, or "none". Children of sections/repeats point at them via parentId.
 - Sections: major parts ("Neckline", "Yoke", "Body", "Sleeves"). Use "times" for "work the other sleeve the same way" (times: 2).
-- Row: one instruction worked for "rows" consecutive rows/rounds (e.g. "Knit 40 (40) 44 (44) rounds twisted rib" -> rows [40,40,44,44]). Numbered rows ("Row 1 (RS)", "Short row 3") get one node each with "label".
+- Row: one instruction worked for "rows" consecutive rows/rounds (e.g. "Knit 40 (40) 44 (44) rounds twisted rib" -> rows [40,40,44,44]; "knit 3 rounds" -> rows [3]). Numbered rows ("Row 1 (RS)", "Short row 3") get one node each with "label".
 - Note: setup and info that isn't itself a row (switch needles, place markers, break yarn, try on, dividing stitches is a row if it is worked across).
 - Chart: "work all rounds of chart B" -> a chart node referencing the chart's id.
 - Repeat: "repeat rows 3-4 another 2 (3) 3 (4) times" -> a repeat whose children are those rows; times is the total number of times the block is worked including the first, when the pattern makes that clear (say so in a reviewNote if not). Use "until" for open-ended conditions ("until piece measures 30 cm").
 - "AT THE SAME TIME": model the main sequence as a repeat (or a repeat wrapping rows) and the concurrent instruction as an overlay on it: first row it happens, every N rows, count. Row numbers count from 1 at the repeat start.
-- "Size S only" blocks: set "sizes" to the size indices (0-based) on those nodes. Otherwise sizes null.
+- "Size S only" blocks: set "sizes" to the size indices (0-based) on those nodes. Otherwise sizes [].
 
 Sizes:
-- "sizes" lists size names in order. Size-dependent numbers: a single integer if the same for all sizes, otherwise an array with one value per size.
+- "sizes" lists size names in order. Numeric fields are arrays: [n] if the same for all sizes, otherwise one value per size.
 - In free text, write size-dependent values inline as {a|b|c|d} with exactly one alternative per size, e.g. "Cast on {108|112|116|120} sts".
 
 Sources: every node gets source refs with the 1-based PDF page and a short exact quote (copied verbatim from the PDF text, 4-15 words) that locates it. Quotes are matched against the PDF text layer, so they must be verbatim.

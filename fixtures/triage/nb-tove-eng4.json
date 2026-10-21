@@ -1,0 +1,33 @@
+{
+ "1": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "2": {
+  "charts": {},
+  "sendToLlm": true,
+  "note": "missing image"
+ },
+ "3": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "4": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "5": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "6": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "7": {
+  "charts": {
+   "vector": 3
+  },
+  "sendToLlm": true
+ }
+}

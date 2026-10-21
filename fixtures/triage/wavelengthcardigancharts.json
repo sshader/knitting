@@ -1,0 +1,9 @@
+{
+ "17": {
+  "charts": {
+   "font": 3
+  },
+  "sendToLlm": true,
+  "note": "for some reason first one parsed as image and others parsed as font"
+ }
+}

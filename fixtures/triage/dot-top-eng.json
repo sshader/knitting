@@ -1,0 +1,85 @@
+{
+ "1": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "2": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "3": {
+  "charts": {
+   "vector": 1
+  },
+  "sendToLlm": true,
+  "note": "there's a chart on the page"
+ },
+ "4": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "5": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "6": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "7": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "8": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "9": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "10": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "11": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "12": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "13": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "14": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "15": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "16": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "17": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "18": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "19": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "20": {
+  "charts": {},
+  "sendToLlm": true
+ }
+}

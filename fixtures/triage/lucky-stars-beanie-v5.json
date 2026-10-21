@@ -1,0 +1,57 @@
+{
+ "1": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "2": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "3": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "4": {
+  "charts": {
+   "writtenColor": 1
+  },
+  "sendToLlm": true
+ },
+ "5": {
+  "charts": {
+   "writtenColor": 1
+  },
+  "sendToLlm": true
+ },
+ "6": {
+  "charts": {
+   "writtenColor": 1
+  },
+  "sendToLlm": true
+ },
+ "7": {
+  "charts": {
+   "writtenColor": 1
+  },
+  "sendToLlm": true
+ },
+ "8": {
+  "charts": {
+   "writtenColor": 1
+  },
+  "sendToLlm": true
+ },
+ "9": {
+  "charts": {},
+  "sendToLlm": true,
+  "note": "boxes might be mis-sized?"
+ },
+ "10": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "11": {
+  "charts": {},
+  "sendToLlm": true
+ }
+}

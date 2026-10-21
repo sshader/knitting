@@ -1,0 +1,22 @@
+{
+ "1": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "2": {
+  "charts": {},
+  "sendToLlm": true
+ },
+ "3": {
+  "charts": {
+   "vector": 2
+  },
+  "sendToLlm": true
+ },
+ "4": {
+  "charts": {
+   "vector": 2
+  },
+  "sendToLlm": true
+ }
+}
