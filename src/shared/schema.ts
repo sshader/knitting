@@ -73,6 +73,8 @@ export const Note = z.object({
 export const ChartWork = z.object({
   ...Base,
   kind: z.literal("chart"),
+  /** As printed: "Rounds 2-48". */
+  label: z.string().optional(),
   charts: z.array(ChartRef).min(1),
   fromRow: Sized(z.number().int().positive()).optional(),
   toRow: Sized(z.number().int().positive()).optional(),

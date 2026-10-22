@@ -55,3 +55,36 @@ describe("parseRuns", () => {
     expect(parseRuns("k18 k4, k30").map((r) => r.n)).toEqual([18, 4, 30]);
   });
 });
+
+describe("shaping read off the row below", () => {
+  const shaped = (cells: string[]) => chart(cells, { legend: { ...legend, "#": { label: "no stitch", noStitch: true } } });
+
+  test("cells that turn no-stitch are consumed by the live stitch before them", () => {
+    // Drawn ".##...", worked right to left: . . . # # . -> k2, CDD (3 to 1), k1.
+    const c = shaped(["......", ".##..."]);
+    expect(generateRow(c, 2)).toMatchObject({ text: "k2 MC, CDD MC, k1 MC", consumed: 6, produced: 4 });
+  });
+
+  test("in the round, leading consumed cells close the last decrease", () => {
+    // Drawn ".....#": the # is the rightmost cell, so first in working order;
+    // it wraps to the round's last stitch.
+    const c = shaped(["......", ".....#"]);
+    expect(generateRow(c, 2).text).toBe("k4 MC, k2tog MC (with the round's first st)");
+  });
+
+  test("cells that turn live are increases that consume nothing", () => {
+    const c = shaped(["#..#", "M..M"]);
+    expect(generateRow(c, 2)).toMatchObject({ text: "m1 CC, k2 MC, m1 CC", consumed: 2, produced: 4 });
+  });
+
+  test("a known repeat count replaces 'repeat to end'", () => {
+    expect(generateRow(chart(["x..x"], { repeat: { fromCol: 1, toCol: 4 } }), 1, { repeats: 12 }).text).toBe("*k1 CC, k2 MC, k1 CC*, repeat 12 times");
+  });
+});
+
+test("consumed cells after older no-stitch cells go into the following stitch", () => {
+  const c = chart(["..#.", ".##."], { legend: { ...legend, "#": { label: "no stitch", noStitch: true } } });
+  // Worked right to left. Row 1: k, #, k, k (3 live). Row 2: k, #(old), #(new), k.
+  // The new one follows an old no-stitch cell, so the next stitch takes it: k1, k2tog.
+  expect(generateRow(c, 2)).toMatchObject({ text: "k1 MC, k2tog MC", consumed: 3, produced: 2 });
+});

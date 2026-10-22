@@ -3,10 +3,17 @@
  "size": 0,
  "steps": [
   {
-   "section": { "id": "body", "title": "Part 1: The Body" },
+   "section": {
+    "id": "body",
+    "title": "Part 1: The Body"
+   },
    "node": "body-chart",
    "label": "Round 3",
-   "of": { "index": 2, "count": 47, "label": "Rounds 2-48" },
+   "of": {
+    "index": 2,
+    "count": 47,
+    "label": "Rounds 2-48"
+   },
    "instruction": "Work 47 more rows in double stockinette stitch while following the color chart for your size (rounds 2-48).",
    "chart": {
     "chartId": "chart-size1",
@@ -16,36 +23,58 @@
     "written": "k9 A, k2 B, k25 A, k2 B, k9 A, k2 B, k25 A, k2 B, k9 A",
     "writtenMatches": true
    },
-   "stitches": { "after": 170 },
+   "stitches": {
+    "after": 170
+   },
    "related": [
     {
      "title": "Working the chart",
      "text": "Each block is one double-knit pair: K the st in the block's color, then P the next st in the opposite color. \"k9 A\" means 9 pairs."
     }
    ],
-   "source": [{ "page": 3, "quote": "Work 47 more rows in double stockinette stitch while following the color" }]
+   "source": [
+    {
+     "page": 3,
+     "quote": "Work 47 more rows in double stockinette stitch while following the color"
+    }
+   ]
   },
   {
-   "section": { "id": "crown", "title": "Part 2: The Crown" },
+   "section": {
+    "id": "crown",
+    "title": "Part 2: The Crown"
+   },
    "node": "crown-rnd50",
    "label": "Round 50 (decrease round)",
    "instruction": "Decrease round: work ROUND 50 of the color chart, working STEPS 2-6 at each marker to end of round. 75 sts of each color remain (150 total).",
    "chart": {
     "chartId": "chart-size1",
     "row": 50,
-    "text": "k18 A, k4 B, k30 A, k4 B, k19 A",
+    "text": "k14 A, CDD A, k3 A, k4 B, k7 A, CDD A, k14 A, CDD A, k7 A, k4 B, k3 A, CDD A, k14 A, CDD A (with the round's first st)",
     "perRepeat": 75,
     "written": "k18 A, k4 B, k30 A, k4 B, k19 A",
     "writtenMatches": true
    },
-   "stitches": { "before": 170, "after": 150 },
+   "stitches": {
+    "before": 170,
+    "after": 150
+   },
    "related": [
     {
-     "title": "How to work a decrease round",
-     "text": "Work in double stockinette until 1 K st before the next marked K st. Rearrange the next 6 sts into 3 K then 3 P; work a CDD on the K sts and a CDDp on the P sts; move the hanging marker up. Repeat to the end of the round. The chart row shows the stitches after decreasing (gray blocks are skipped)."
+     "title": "CDD A (decrease pair)",
+     "text": "Rearrange the next 3 K and 3 P sts into 3 K then 3 P; work a CDD on the K sts and a CDDp on the P sts; move the hanging marker up. 3 pairs become 1, in the color shown."
+    },
+    {
+     "title": "The round's first stitch",
+     "text": "The first stitch carries the hanging marker; skip it at the start and work it into the last decrease at the end of the round."
     }
    ],
-   "source": [{ "page": 10, "quote": "ROUND 50 - 75 (85) sts of each color remain" }]
+   "source": [
+    {
+     "page": 10,
+     "quote": "ROUND 50 - 75 (85) sts of each color remain"
+    }
+   ]
   }
  ]
 }

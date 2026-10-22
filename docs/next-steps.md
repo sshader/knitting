@@ -12,23 +12,25 @@ Lucky Stars, Moonbun, Wilde.
 | 2 · Sections | Row-level nodes per section, cached pattern prefix | 3 focus patterns, all checks passing |
 | 3 · Charts | Grid in code, one naming call per pattern, row generator | Lucky Stars (both sizes), Moonbun; raster only |
 
-## 1. Integrate charts into sections (next)
+## 1. Integrate charts into sections
 
-Sections reference chart rows ("work rounds 2-48 of the chart", "Round 50:
-decrease round = chart row 50"); charts generate each row's instructions. The
-knitter should see one step per row with both.
+Done for Lucky Stars and Moonbun: `src/shared/expand.ts` turns sections +
+charts into one step per row for a size and options, reproducing the
+hand-written steps in `fixtures/steps` (tested). Shaping drawn as no-stitch
+cells is read off the row below (decreases inline, e.g. Lucky Stars round 50's
+CDDs), and stitch counts carry through chart rows (repeats = stitches before /
+stitches a row consumes). Preview: inspector "Steps", Generated mode.
 
-1. Hand-write the expected result for a couple of rows in Lucky Stars and
-   Moonbun (`fixtures/steps/`) and preview it in the inspector: the step's
-   section instruction, the generated chart row, stitch count, the chart with
-   that row highlighted, and the PDF source.
-2. Iterate on that format until it reads right.
-3. Then build the expander (sections + charts + size/options -> steps) to
-   reproduce the fixtures, and run it over whole patterns.
-
-Open questions for the expander: chart repeats per size (from stitch counts),
-rows that continue a chart "as set", overlays (AT THE SAME TIME) on chart
-rows, written-out rows shown alongside generated ones.
+Still to do here:
+- **Open-ended repeats** ("until it measures 3 cm") are one step; the knitting
+  view needs to loop on them, and overlays inside them ("dec every 10 rnds")
+  only land on the first pass.
+- **Counts stated only in notes** ("you should have 64 sts" for sleeves) aren't
+  picked up; sleeves show no count.
+- **Several charts in one row** (Wilde's panels) are only named alongside the
+  first chart, not merged into one row's instructions.
+- Decrease names default to k2tog / CDD by stitches consumed; patterns that use
+  other names (ssk, sk2p) need them from the legend or the pattern text.
 
 ## 2. Rotated charts (Wilde)
 

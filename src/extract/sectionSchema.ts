@@ -100,7 +100,7 @@ function toNode(n: FlatNode): Node {
     case "note":
       return { ...base, kind: "note", text: n.text };
     case "chart":
-      return { ...base, kind: "chart", charts: refs(n), fromRow: sized(n.fromRow), toRow: sized(n.toRow), text: str(n.text) };
+      return { ...base, kind: "chart", label: str(n.label), charts: refs(n), fromRow: sized(n.fromRow), toRow: sized(n.toRow), text: str(n.text) };
   }
 }
 

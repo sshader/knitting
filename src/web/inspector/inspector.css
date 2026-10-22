@@ -735,3 +735,35 @@ ul.items {
   gap: 16px;
   max-width: 1400px;
 }
+.step-options {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.step-list {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-left: 0;
+  list-style: none;
+}
+.step-list li {
+  padding: 3px 6px;
+}
+.step-list-section {
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.step-until {
+  font-size: 14px;
+  color: #6d28d9;
+  margin-bottom: 8px;
+}
+.step-also {
+  background: #f3e8ff;
+  border-left: 4px solid #6d28d9;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
