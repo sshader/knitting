@@ -188,7 +188,11 @@ export function SectionsInspector({ initial, onSelect }: { initial: string | nul
           )}
         </div>
         <div className="source">
-          {node && map ? <SourceView node={node} pages={map.pages} /> : <p className="muted">Select a node to see where it came from.</p>}
+          {node && map ? (
+            <SourceView sources={[...node.source, ...node.overlays.flatMap((o) => o.source)]} pages={map.pages} />
+          ) : (
+            <p className="muted">Select a node to see where it came from.</p>
+          )}
         </div>
       </main>
     </div>
@@ -295,10 +299,9 @@ function SectionReview({ v, onChange }: { v?: Verdict; onChange: (v: Verdict | u
   );
 }
 
-/** The node's source pages with each quote highlighted. */
-function SourceView({ node, pages }: { node: FlatNode; pages: PageRef[] }) {
+/** Source pages with each quote highlighted. */
+export function SourceView({ sources: srcs, pages }: { sources: { page: number; quote: string }[]; pages: PageRef[] }) {
   const [data, setData] = useState<Record<number, PageData>>({});
-  const srcs = useMemo(() => [...node.source, ...node.overlays.flatMap((o) => o.source)], [node]);
 
   useEffect(() => {
     for (const s of srcs) {

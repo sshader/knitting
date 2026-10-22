@@ -3,14 +3,15 @@ import { createRoot } from "react-dom/client";
 import { ChartsInspector } from "./inspector/ChartsInspector";
 import { MapInspector } from "./inspector/MapInspector";
 import { SectionsInspector } from "./inspector/SectionsInspector";
+import { StepsPreview } from "./inspector/StepsPreview";
 import { TriageInspector } from "./inspector/TriageInspector";
 import "./inspector/inspector.css";
 
-type View = "triage" | "map" | "sections" | "charts";
+type View = "triage" | "map" | "sections" | "charts" | "steps";
 
 function App() {
   const params = new URLSearchParams(location.search);
-  const [view, setView] = useState<View>((["map", "sections", "charts"] as const).find((v) => v === params.get("view")) ?? "triage");
+  const [view, setView] = useState<View>((["map", "sections", "charts", "steps"] as const).find((v) => v === params.get("view")) ?? "triage");
   const go = (v: View) => {
     const next = new URLSearchParams({ view: v });
     history.replaceState(null, "", `?${next}`);
@@ -36,6 +37,9 @@ function App() {
         <button className={view === "charts" ? "on" : ""} onClick={() => go("charts")}>
           3 · Charts
         </button>
+        <button className={view === "steps" ? "on" : ""} onClick={() => go("steps")}>
+          Steps preview
+        </button>
       </nav>
       {view === "triage" ? (
         <TriageInspector />
@@ -43,8 +47,10 @@ function App() {
         <MapInspector initial={params.get("p")} onSelect={onSelectPattern} />
       ) : view === "sections" ? (
         <SectionsInspector initial={params.get("p")} onSelect={onSelectPattern} />
-      ) : (
+      ) : view === "charts" ? (
         <ChartsInspector />
+      ) : (
+        <StepsPreview />
       )}
     </>
   );

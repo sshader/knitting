@@ -25,7 +25,7 @@ interface RowOut {
   error?: string;
 }
 
-interface ChartFile {
+export interface ChartFile {
   chart: Chart;
   naming: { notes: string[] };
   grid: { gridBox: number[]; cols: number; rows: number };
@@ -172,7 +172,7 @@ export function ChartsInspector() {
 const symbolFor = (key: string, e: Chart["legend"][string]) => (e.noStitch || /^[kp]$/.test(e.rs ?? "") ? "" : key);
 
 /** The chart image with a band over the selected row; click to select a row. */
-function PdfChart({ file, row, onRow }: { file: ChartFile; row: number; onRow: (r: number) => void }) {
+export function PdfChart({ file, row, onRow }: { file: ChartFile; row: number; onRow: (r: number) => void }) {
   const [cx0, cy0, cx1, cy1] = file.image.cropBox;
   const [gx0, gy0, gx1, gy1] = file.grid.gridBox;
   const rows = file.grid.rows;
@@ -205,7 +205,7 @@ function PdfChart({ file, row, onRow }: { file: ChartFile; row: number; onRow: (
 }
 
 /** The extracted cells drawn from the legend's swatches; row 1 at the bottom, columns numbered from the right. */
-function Grid({ chart, row, onRow }: { chart: Chart; row: number; onRow: (r: number) => void }) {
+export function Grid({ chart, row, onRow }: { chart: Chart; row: number; onRow: (r: number) => void }) {
   const cols = chart.width;
   const rows = chart.cells.length;
   const first = chart.firstRow ?? 1;

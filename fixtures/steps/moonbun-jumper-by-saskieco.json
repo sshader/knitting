@@ -1,0 +1,38 @@
+{
+ "pattern": "moonbun-jumper-by-saskieco",
+ "size": 0,
+ "steps": [
+  {
+   "section": { "id": "yoke", "title": "Yoke Chart" },
+   "node": "yoke-chart-1-3",
+   "label": "Round 3 (increase round)",
+   "of": { "index": 3, "count": 3, "label": "Chart A rnds 1-3" },
+   "instruction": "Knit chart A, rnds 1-3. After rnd 3, you have 144 sts.",
+   "chart": {
+    "chartId": "chart-a",
+    "row": 3,
+    "text": "*k2 cc, m1 cc, k1 cc, k1 mc, m1 cc, k2 cc, m1 cc, k1 cc, k1 mc, m1 cc*, repeat 12 times",
+    "perRepeat": 12,
+    "repeats": 12
+   },
+   "stitches": { "before": 96, "after": 144 },
+   "source": [{ "page": 7, "quote": "After rnd 3, you have 144" }]
+  },
+  {
+   "section": { "id": "yoke", "title": "Yoke Chart" },
+   "node": "yoke-chart-27-48",
+   "label": "Round 27",
+   "of": { "index": 1, "count": 22, "label": "Chart A rnds 27-48" },
+   "instruction": "Continue chart A, rnds 27-48 (no further increases).",
+   "chart": {
+    "chartId": "chart-a",
+    "row": 27,
+    "text": "*k2 cc, k3 mc, k3 cc, k2 mc, k4 cc, k3 mc, k3 cc*, repeat 12 times",
+    "perRepeat": 20,
+    "repeats": 12
+   },
+   "stitches": { "after": 240 },
+   "source": [{ "page": 6, "quote": "All sizes: Knit chart." }]
+  }
+ ]
+}
