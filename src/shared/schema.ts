@@ -29,8 +29,17 @@ export type SourceRef = z.infer<typeof SourceRef>;
 const Base = {
   id: z.string(),
   sizes: Sizes,
+  /** Option choices a node applies to ("Bracelet", "Tank"); omitted = always. See `Pattern.options`. */
+  choices: z.array(z.string()).optional(),
   source: z.array(SourceRef).optional(),
 };
+
+/**
+ * One chart worked in a row. Charts often come in a version per size, so this
+ * is an id or one id per size ("" for sizes without one). A row can work
+ * several charts side by side (panels; sleeve and body charts), hence lists.
+ */
+const ChartRef = Sized(z.string());
 
 /** One instruction worked for `rows` consecutive rows/rounds ("Knit 3 rounds"). */
 export const Row = z.object({
@@ -45,7 +54,12 @@ export const Row = z.object({
   /** Stitch count after this row, if the pattern states it. */
   stitchCount: Sized(z.number().int().nonnegative()).optional(),
   /** Rows from `fromRow` onward in a chart, one chart row per worked row. */
-  chart: z.object({ chartId: z.string(), fromRow: z.number().int().positive() }).optional(),
+  /**
+   * The charts worked on this row and the chart row it corresponds to.
+   * fromRow omitted = continue the charts from where they left off ("work 13
+   * rounds as set"); the expander tracks the current chart row.
+   */
+  chart: z.object({ charts: z.array(ChartRef).min(1), fromRow: Sized(z.number().int().positive()).optional() }).optional(),
 });
 
 /** Non-row information at a point in the sequence: "Switch to 3.5 mm needle". */
@@ -59,9 +73,9 @@ export const Note = z.object({
 export const ChartWork = z.object({
   ...Base,
   kind: z.literal("chart"),
-  chartId: z.string(),
-  fromRow: z.number().int().positive().optional(),
-  toRow: z.number().int().positive().optional(),
+  charts: z.array(ChartRef).min(1),
+  fromRow: Sized(z.number().int().positive()).optional(),
+  toRow: Sized(z.number().int().positive()).optional(),
   text: z.string().optional(),
 });
 
@@ -148,6 +162,8 @@ export const Pattern = z.object({
   title: z.string(),
   designer: z.string().optional(),
   sizes: z.array(z.string()).min(1),
+  /** Non-size choices the knitter makes, e.g. { name: "Sleeve length", choices: ["Bracelet", "Full"] }. */
+  options: z.array(z.object({ name: z.string(), choices: z.array(z.string()) })).optional(),
   construction: z.string().optional(),
   gauge: z.string().optional(),
   needles: z.array(z.string()).optional(),

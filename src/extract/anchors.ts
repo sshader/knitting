@@ -7,12 +7,22 @@ import { inReadingOrder } from "./readingOrder";
  * Word indices are in reading order (see readingOrder.ts).
  */
 
-const norm = (t: string) =>
+/**
+ * Letter/digit tokens of a string, lowercased. PDF "words" can glue several
+ * tokens together ("1.\u200bBegin" is a list number and a word), so matching
+ * works on tokens, not words.
+ */
+const tokens = (t: string) =>
   t
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[‘’]/g, "'")
-    .replace(/[^\p{L}\p{N}']+/gu, "");
+    .replace(/[\u00ad\u200b]/g, "") // soft hyphen, zero-width space
+    .match(/[\p{L}\p{N}]+/gu) ?? [];
+
+/** Page tokens in reading order, each with the index of the word it came from. */
+function pageTokens(p: PageData) {
+  return p.words.flatMap((w, word) => tokens(w.t).map((t) => ({ t, word })));
+}
 
 /**
  * Index of the first word of `quote` on the page, matching normalized words in
@@ -20,10 +30,16 @@ const norm = (t: string) =>
  * a match starting a line (where headings sit) wins over an earlier one.
  */
 export function findQuote(page: PageData, quote: string, after = -1): number {
+  return findQuoteSpan(page, quote, after)?.start ?? -1;
+}
+
+/** Like `findQuote`, with the quote's last word too (inclusive), for highlighting it. */
+export function findQuoteSpan(page: PageData, quote: string, after = -1): { start: number; end: number } | null {
   const p = inReadingOrder(page);
-  const all = matches(p, quote).filter((i) => i > after);
-  const lineStart = (i: number) => i === 0 || p.words[i - 1].blk !== p.words[i].blk || p.words[i - 1].ln !== p.words[i].ln;
-  return all.find(lineStart) ?? all[0] ?? -1;
+  const all = matches(p, quote).filter((m) => m.start > after);
+  const lineStart = ({ start: i }: { start: number }) =>
+    i === 0 || p.words[i - 1].blk !== p.words[i].blk || p.words[i - 1].ln !== p.words[i].ln;
+  return all.find(lineStart) ?? all[0] ?? null;
 }
 
 /**
@@ -46,22 +62,22 @@ export function locateSections(
   });
 }
 
-function matches(p: PageData, quote: string): number[] {
-  const q = quote.split(/\s+/).map(norm).filter(Boolean);
+/** Word spans where `quote`'s tokens occur consecutively. A token split by line-end hyphenation ("ed-" + "ges") also matches. */
+function matches(p: PageData, quote: string): { start: number; end: number }[] {
+  const q = tokens(quote);
   if (q.length === 0) return [];
-  const w = p.words.map((x) => norm(x.t));
-  const found: number[] = [];
+  const w = pageTokens(p);
+  const found = new Map<number, number>();
   outer: for (let i = 0; i < w.length; i++) {
     let j = i;
     for (const tok of q) {
-      while (j < w.length && w[j] === "") j++;
-      // Hyphenation and run-together words: accept a prefix match on the last token.
-      if (j >= w.length || !(w[j] === tok || (tok === q.at(-1) && w[j].startsWith(tok)) || w[j].replace(/-/g, "") === tok)) continue outer;
-      j++;
+      if (j < w.length && w[j].t === tok) j++;
+      else if (j + 1 < w.length && w[j].t + w[j + 1].t === tok) j += 2;
+      else continue outer;
     }
-    found.push(i);
+    if (!found.has(w[i].word)) found.set(w[i].word, w[j - 1].word);
   }
-  return found;
+  return [...found].map(([start, end]) => ({ start, end }));
 }
 
 export interface Pos {
