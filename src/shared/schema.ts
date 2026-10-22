@@ -126,9 +126,28 @@ export const Section: z.ZodType<Section> = SectionFields.extend({ children: z.ar
 export const Node: z.ZodType<Node> = z.union([Row, Note, ChartWork, Repeat, Section]);
 
 /**
+ * What one chart symbol means. `rs`/`ws` are the stitch worked on right- and
+ * wrong-side rows ("k", "p", "m1L", "2/1 RPC"); in-the-round charts only use
+ * `rs`. `color` is the pattern's name for the yarn ("MC", "A"), if any.
+ */
+export const LegendEntry = z.object({
+  label: z.string(),
+  rs: z.string().optional(),
+  ws: z.string().optional(),
+  color: z.string().optional(),
+  /** Swatch color as drawn, for rendering the chart (CSS color). */
+  swatch: z.string().optional(),
+  /** Gray "no stitch" cells: skipped when working the row. */
+  noStitch: z.boolean().optional(),
+  /** Cells covered by one symbol (cables). Default 1. */
+  span: z.number().int().positive().optional(),
+});
+export type LegendEntry = z.infer<typeof LegendEntry>;
+
+/**
  * Charts are stored as strings, one char per cell, so they stay small and
  * hand-editable. `cells[0]` is chart row 1 (the bottom row), read left to right
- * as drawn. Each char is a key into `legend`; " " means no stitch.
+ * as drawn. Each char is a key into `legend`; " " means outside the chart.
  */
 export const Chart = z.object({
   id: z.string(),
@@ -136,23 +155,17 @@ export const Chart = z.object({
   sizes: Sizes,
   width: z.number().int().positive(),
   cells: z.array(z.string()),
-  legend: z.record(
-    z.string().length(1),
-    z.object({
-      label: z.string(),
-      color: z.string().optional(),
-      /** Glossary abbreviation this symbol means, e.g. "M1BL". */
-      abbrev: z.string().optional(),
-      /** Cells covered by one symbol (cables). Default 1. */
-      span: z.number().int().positive().optional(),
-    }),
-  ),
+  legend: z.record(z.string().length(1), LegendEntry),
   /** "rtl" = every row right to left (in the round); "alternate" = RS rtl, WS ltr (flat). */
   readDirection: z.enum(["rtl", "alternate"]),
-  /** Pattern repeat, as 1-based inclusive column range. */
+  /** Pattern repeat, as 1-based inclusive column range counted from the right. */
   repeat: z.object({ fromCol: z.number().int(), toCol: z.number().int() }).optional(),
   /** Row number of cells[0] if the chart doesn't start at 1 (multi-page charts). */
   firstRow: z.number().int().positive().optional(),
+  /** What one cell is, if not one stitch ("a pair: K in the cell's color, P in the other"). */
+  cellNote: z.string().optional(),
+  /** Rows as the pattern writes them out, by chart row number, when it does. */
+  writtenRows: z.record(z.string(), z.string()).optional(),
   source: z.array(SourceRef).optional(),
 });
 export type Chart = z.infer<typeof Chart>;
