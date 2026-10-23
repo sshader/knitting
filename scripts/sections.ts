@@ -6,16 +6,16 @@
  * Every call shares a cached prefix (instructions + the whole pattern's text +
  * the reviewed map), then names one section. The first call runs alone to
  * write the cache; the rest run in parallel and read it.
- * Writes data/sections/<pattern>/<sectionId>.json.
+ * Reads the map from Convex and saves each section's result there.
  */
 import type Anthropic from "@anthropic-ai/sdk";
-import fs from "node:fs";
 import path from "node:path";
+import { api } from "../convex/_generated/api";
 import { locateSections } from "../src/extract/anchors";
-import type { DocMap } from "../src/extract/docMap";
 import { buildMapInput, mapContext } from "../src/extract/mapInput";
-import { pageLoader, type PageRef } from "../src/extract/patterns";
+import { pageLoader, pageRefs } from "../src/extract/patterns";
 import { checkSection, SectionExtraction, toSection } from "../src/extract/sectionSchema";
+import { connect, usageOf } from "./convex";
 import { MODEL, structured } from "./llm";
 
 const PARALLEL = 4;
@@ -51,11 +51,11 @@ Other fields
 async function main() {
   const [pattern, ...only] = process.argv.slice(2);
   if (!pattern) throw new Error("usage: sections.ts <pattern> [sectionId...]");
-  const { map, pages }: { map: DocMap; pages: PageRef[] } = JSON.parse(fs.readFileSync(`data/map/text/${pattern}.json`, "utf8"));
-  const outDir = path.join("data/sections", pattern);
-  fs.mkdirSync(outDir, { recursive: true });
-
-  const load = pageLoader(pages);
+  const convex = await connect();
+  const saved = await convex.query(api.maps.get, { pattern, mode: "text" });
+  if (!saved) throw new Error(`${pattern} has no map; run scripts/map.ts ${pattern}`);
+  const { map } = saved;
+  const load = pageLoader(pageRefs(pattern));
 
   const { content } = buildMapInput(pattern, path.join("data/crops", pattern), "text");
   const prefix: Anthropic.ContentBlockParam[] = [...content, { ...mapContext(map), cache_control: { type: "ephemeral" } }];
@@ -74,25 +74,23 @@ async function main() {
       effort: "high",
       maxTokens: 64000,
     });
-    const out: Record<string, unknown> = { section: s.id, model: MODEL, usage: msg.usage, stop_reason: msg.stop_reason, seconds: secs };
-    if (!x) {
-      out.error = `stop_reason ${msg.stop_reason}`;
-      out.raw = msg.content;
-    } else {
-      out.extraction = x;
-      out.problems = checkSection(x, map, load);
-      try {
-        out.tree = toSection(x, s);
-      } catch (e) {
-        out.error = String(e);
-      }
-    }
-    fs.writeFileSync(path.join(outDir, `${s.id}.json`), JSON.stringify(out, null, 1));
+    const problems = x ? checkSection(x, map, load) : [];
+    const error = x ? treeError(() => toSection(x, s)) : `stop_reason ${msg.stop_reason}`;
+    await convex.mutation(api.sections.save, {
+      pattern,
+      sectionId: s.id,
+      extraction: x ?? undefined,
+      problems,
+      error,
+      model: MODEL,
+      seconds: secs,
+      usage: usageOf(msg.usage),
+    });
     const u = msg.usage;
     console.log(
       `${s.id.padEnd(28)} ${String(secs).padStart(3)}s  in=${u.input_tokens} cacheRead=${u.cache_read_input_tokens ?? 0} cacheWrite=${u.cache_creation_input_tokens ?? 0} out=${u.output_tokens}` +
-        (x ? `  ${x.nodes.length} nodes, ${(out.problems as string[]).length} problems, ${x.reviewNotes.length} notes` : `  FAILED: ${out.error}`) +
-        (out.error && x ? `  TREE ERROR: ${out.error}` : ""),
+        (x ? `  ${x.nodes.length} nodes, ${problems.length} problems, ${x.reviewNotes.length} notes` : `  FAILED: ${error}`) +
+        (error && x ? `  TREE ERROR: ${error}` : ""),
     );
   }
 
@@ -100,6 +98,15 @@ async function main() {
   const [first, ...rest] = targets;
   if (first) await extract(first);
   for (let i = 0; i < rest.length; i += PARALLEL) await Promise.all(rest.slice(i, i + PARALLEL).map(extract));
+}
+
+/** The extraction must rebuild into a valid section tree; the error if it doesn't. */
+function treeError(build: () => unknown): string | undefined {
+  try {
+    build();
+  } catch (e) {
+    return String(e);
+  }
 }
 
 main().catch((e) => {

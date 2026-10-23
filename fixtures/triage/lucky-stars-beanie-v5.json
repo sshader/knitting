@@ -43,8 +43,8 @@
  },
  "9": {
   "charts": {},
-  "sendToLlm": true,
-  "note": "boxes might be mis-sized?"
+  "note": "boxes might be mis-sized?",
+  "sendToLlm": true
  },
  "10": {
   "charts": {},

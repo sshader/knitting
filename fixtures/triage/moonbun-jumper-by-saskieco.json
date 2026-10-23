@@ -5,8 +5,8 @@
  },
  "2": {
   "charts": {},
-  "sendToLlm": true,
-  "note": "image is too long and includes text too"
+  "note": "image is too long and includes text too",
+  "sendToLlm": true
  },
  "3": {
   "charts": {},

@@ -9,22 +9,24 @@
  *    enlarged samples plus the chart images and the cached pattern text.
  * 3. Build each Chart, generate every row, and check it against the
  *    pattern's written rows and the stitch counts stated in its sections.
- * Writes data/charts/<pattern>/<chartId>.json and data/charts/index.json.
+ * Working files go to data/charts/<pattern>/<chartId>/; each Chart is saved
+ * to Convex with its cropped image.
  */
 import type Anthropic from "@anthropic-ai/sdk";
 import fs from "node:fs";
 import path from "node:path";
+import { api } from "../convex/_generated/api";
 import { checkStitchCounts } from "../src/extract/chartChecks";
+import { chartReport } from "../src/extract/chartReport";
 import { ChartNaming } from "../src/extract/chartSchema";
-import type { DocMap } from "../src/extract/docMap";
 import { buildMapInput, mapContext, png } from "../src/extract/mapInput";
-import { docsFor, PDF_DIR, readPage, triageDoc, type PageRef } from "../src/extract/patterns";
+import { docsFor, pageRefs, PDF_DIR, readPage, triageDoc } from "../src/extract/patterns";
 import { runPython } from "../src/extract/python";
-import type { FlatNode } from "../src/extract/sectionSchema";
 import { parseWrittenColorRows } from "../src/extract/writtenChart";
-import { expand, formatRuns, generateRow, parseRuns } from "../src/shared/chartRows";
+import { formatRuns } from "../src/shared/chartRows";
 import { Chart, type LegendEntry } from "../src/shared/schema";
-import { structured } from "./llm";
+import { connect, upload, usageOf } from "./convex";
+import { MODEL, structured } from "./llm";
 
 const CELL_TYPES = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -37,7 +39,11 @@ Also from each chart's image: the number printed on its bottom row (firstRow), r
 async function main() {
   const [pattern, ...only] = process.argv.slice(2);
   if (!pattern) throw new Error("usage: charts.ts <pattern> [chartId...]");
-  const { map, pages }: { map: DocMap; pages: PageRef[] } = JSON.parse(fs.readFileSync(`data/map/text/${pattern}.json`, "utf8"));
+  const convex = await connect();
+  const saved = await convex.query(api.maps.get, { pattern, mode: "text" });
+  if (!saved) throw new Error(`${pattern} has no map; run scripts/map.ts ${pattern}`);
+  const { map } = saved;
+  const pages = pageRefs(pattern);
   const targets = map.charts.filter((c) => (only.length ? only.includes(c.id) : /^p\d+\.i\d+$/.test(c.regionIds[0] ?? "")));
 
   // 1. Grids, in code.
@@ -88,9 +94,8 @@ async function main() {
   console.log(`naming: ${secs}s, out=${msg.usage.output_tokens}, cache write=${msg.usage.cache_creation_input_tokens ?? 0} read=${msg.usage.cache_read_input_tokens ?? 0}`);
 
   // 3. Build, generate, check.
-  const sectionNodes: FlatNode[] = fs.existsSync(`data/sections/${pattern}`)
-    ? fs.readdirSync(`data/sections/${pattern}`).flatMap((f) => JSON.parse(fs.readFileSync(`data/sections/${pattern}/${f}`, "utf8")).extraction?.nodes ?? [])
-    : [];
+  const sections = await convex.query(api.sections.forPattern, { pattern });
+  const sectionNodes = sections.flatMap((s) => s.extraction?.nodes ?? []);
   for (const { c, ref, grid, crop, cropBox } of prepared) {
     const named = naming.charts.find((x) => x.chartId === c.id);
     if (!named) {
@@ -136,68 +141,32 @@ async function main() {
       source: [{ page: ref.page }],
     });
 
-    const rows = cells.map((_, i) => {
-      const n = i + (chart.firstRow ?? 1);
-      try {
-        const g = generateRow(chart, n);
-        const written = writtenRows?.[String(n)];
-        const gen = expand(g.runs);
-        const want = written ? expand(parseRuns(written)) : null;
-        const differs = want ? Math.max(gen.length, want.length) - gen.filter((s, j) => s === want[j]).length : null;
-        return { row: n, side: g.side, text: g.text, stitches: gen.length, written, differs };
-      } catch (e) {
-        return { row: n, error: String(e) };
-      }
-    });
-    const compared = rows.filter((r) => "differs" in r && r.differs !== null);
+    const { written } = chartReport(chart);
+    const unassignedCells = cells.join("").split("?").length - 1;
     const stitchCounts = checkStitchCounts(chart, sectionNodes, map.sizes);
-    const out = {
+    await convex.mutation(api.charts.save, {
+      pattern,
+      chartId: c.id,
       chart,
-      naming: { ...named, notes: naming.notes },
-      grid: { gridBox: grid.gridBox, cols: grid.cols, rows: grid.rows, classes: grid.classes },
-      image: { file: crop, page: ref.page, cropBox },
-      rows,
-      checks: {
-        unassignedCells: cells.join("").split("?").length - 1,
-        written: compared.length
-          ? { rows: compared.length, identical: compared.filter((r: any) => r.differs === 0).length, stitchesDiffering: compared.reduce((n, r: any) => n + r.differs, 0) }
-          : null,
-        stitchCounts,
-      },
-      usage: { naming: msg.usage, sharedAcross: prepared.length },
-    };
-    fs.writeFileSync(path.join("data/charts", pattern, `${c.id}.json`), JSON.stringify(out, null, 1));
-    const ck = out.checks;
+      naming: named,
+      notes: naming.notes,
+      image: { file: await upload(convex, crop, "image/png"), page: ref.page, cropBox },
+      gridBox: grid.gridBox,
+      unassignedCells,
+      stitchCounts,
+      model: MODEL,
+      usage: usageOf(msg.usage),
+    });
     console.log(
-      `${c.id}: ${grid.cols}x${grid.rows}, ${new Set(keyOf.values()).size} legend keys${ck.unassignedCells ? `, ${ck.unassignedCells} UNASSIGNED cells` : ""}` +
-        (ck.written ? `; written rows: ${ck.written.identical}/${ck.written.rows} identical, ${ck.written.stitchesDiffering} sts differ` : "") +
+      `${c.id}: ${grid.cols}x${grid.rows}, ${new Set(keyOf.values()).size} legend keys${unassignedCells ? `, ${unassignedCells} UNASSIGNED cells` : ""}` +
+        (written ? `; written rows: ${written.identical}/${written.rows} identical, ${written.stitchesDiffering} sts differ` : "") +
         `; stitch counts: ${stitchCounts.checkpoints.length} checkpoints, ${stitchCounts.problems.length} problems` +
         (stitchCounts.problems.length ? `\n    ${stitchCounts.problems.join("\n    ")}` : ""),
     );
   }
 }
 
-/** The inspector lists charts from this. */
-function writeIndex() {
-  const root = "data/charts";
-  const entries = fs
-    .readdirSync(root, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .flatMap((d) =>
-      fs
-        .readdirSync(path.join(root, d.name))
-        .filter((f) => f.endsWith(".json"))
-        .map((f) => {
-          const j = JSON.parse(fs.readFileSync(path.join(root, d.name, f), "utf8"));
-          return { pattern: d.name, chartId: j.chart.id, title: j.chart.title, size: `${j.chart.width}x${j.chart.cells.length}`, comparison: j.checks.written };
-        }),
-    );
-  fs.writeFileSync(path.join(root, "index.json"), JSON.stringify(entries, null, 1));
-}
-
-main()
-  .then(writeIndex)
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

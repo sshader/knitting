@@ -5,8 +5,8 @@
  },
  "2": {
   "charts": {},
-  "sendToLlm": true,
-  "note": "missing image"
+  "note": "missing image",
+  "sendToLlm": true
  },
  "3": {
   "charts": {},

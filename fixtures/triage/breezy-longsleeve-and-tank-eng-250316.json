@@ -9,8 +9,8 @@
  },
  "3": {
   "charts": {},
-  "sendToLlm": true,
-  "note": "last \"image\" is actually just prose"
+  "note": "last \"image\" is actually just prose",
+  "sendToLlm": true
  },
  "4": {
   "charts": {},

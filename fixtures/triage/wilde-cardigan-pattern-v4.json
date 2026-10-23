@@ -5,8 +5,8 @@
  },
  "2": {
   "charts": {},
-  "sendToLlm": true,
-  "note": "missing image at bottom"
+  "note": "missing image at bottom",
+  "sendToLlm": true
  },
  "3": {
   "charts": {},
@@ -54,8 +54,8 @@
  },
  "14": {
   "charts": {},
-  "sendToLlm": true,
-  "note": "legend with text considered image"
+  "note": "legend with text considered image",
+  "sendToLlm": true
  },
  "15": {
   "charts": {},

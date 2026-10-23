@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { area, intersect, union, type BBox, type PageData } from "./pageData";
 
 /**
@@ -7,39 +8,45 @@ import { area, intersect, union, type BBox, type PageData } from "./pageData";
  * instructions, photo vs. raster chart) are left to the document-map stage.
  */
 
-export type ChartForm =
+const BBoxZ = z.tuple([z.number(), z.number(), z.number(), z.number()]);
+
+export const ChartForm = z.enum([
   /** Grid of filled rectangles (Tove). Colors readable exactly from vectors. */
-  | "vector"
+  "vector",
   /** Positioned glyphs in a stitch-symbol font (Wavelength / StitchFiddle). */
-  | "font"
+  "font",
   /** Colorwork written out as text, color carried by span color (Lucky Stars). */
-  | "writtenColor";
+  "writtenColor",
+]);
+export type ChartForm = z.infer<typeof ChartForm>;
 
-export interface ChartRegion {
-  form: ChartForm;
-  bbox: BBox;
+export const ChartRegion = z.object({
+  form: ChartForm,
+  bbox: BBoxZ,
   /** Human-readable evidence, for reviewing triage decisions. */
-  evidence: string;
-}
+  evidence: z.string(),
+});
+export type ChartRegion = z.infer<typeof ChartRegion>;
 
-export interface PageTriage {
-  page: number;
-  textChars: number;
-  charts: ChartRegion[];
+export const PageTriage = z.object({
+  page: z.number(),
+  textChars: z.number(),
+  charts: z.array(ChartRegion),
   /** Images covering a meaningful part of the page: photo, schematic, or raster chart (stage 1 decides). */
-  images: { bbox: BBox; coverage: number }[];
+  images: z.array(z.object({ bbox: BBoxZ, coverage: z.number() })),
   /** Lines that look like written row instructions ("Rnd 5: ..."). */
-  writtenRows: { count: number; first?: number; last?: number };
+  writtenRows: z.object({ count: z.number(), first: z.number().optional(), last: z.number().optional() }),
   /** Text belonging to detected charts (glyphs, cell labels) is excluded. */
-  proseChars: number;
-  sendToLlm: boolean;
+  proseChars: z.number(),
+  sendToLlm: z.boolean(),
   /**
    * For pages not sent whole: regions to send as image crops instead, e.g. a
    * legend rendered as an image beside a glyph chart (Wavelength).
    */
-  llmCrops: BBox[];
-  reason: string;
-}
+  llmCrops: z.array(BBoxZ),
+  reason: z.string(),
+});
+export type PageTriage = z.infer<typeof PageTriage>;
 
 function push<K, V>(m: Map<K, V[]>, k: K, v: V) {
   const xs = m.get(k);

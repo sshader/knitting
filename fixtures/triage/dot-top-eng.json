@@ -11,8 +11,8 @@
   "charts": {
    "vector": 1
   },
-  "sendToLlm": true,
-  "note": "there's a chart on the page"
+  "note": "there's a chart on the page",
+  "sendToLlm": true
  },
  "4": {
   "charts": {},

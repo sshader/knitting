@@ -5,18 +5,16 @@
  *
  * --dry builds the request and counts tokens without generating.
  * --mode picks the input format (see mapInput.ts); default text.
- * Writes data/map/<mode>/<pattern>.json: { map, pages, problems, usage }.
+ * Saves the map to Convex (failed calls to data/map/<mode>/<pattern>.failed.json).
  */
 import fs from "node:fs";
 import path from "node:path";
-import { locateSections } from "../src/extract/anchors";
+import { api } from "../convex/_generated/api";
 import { DocMap } from "../src/extract/docMap";
+import { checkMap } from "../src/extract/mapChecks";
 import { buildMapInput, type MapInputMode } from "../src/extract/mapInput";
-import { docsFor, pageLoader, triageDoc, type PageRef } from "../src/extract/patterns";
-import { regionIds } from "../src/extract/triage";
+import { connect, usageOf } from "./convex";
 import { client, MODEL, structured } from "./llm";
-
-const MAP_DIR = "data/map";
 
 const SYSTEM = `You map the structure of knitting patterns for a row-by-row knitting tracker. You are given every page of a pattern (as text with headings marked, or text plus page images), with regions a layout detector found and images of them. Produce a map; a later step extracts the actual row instructions section by section using your map, so page ranges and chart assignments must be right.
 
@@ -53,41 +51,12 @@ reviewNotes: anything ambiguous or that you aren't sure about. Be specific.`;
 
 const TASK = "Map this pattern.";
 
-function check(map: DocMap, pages: PageRef[], pattern: string): string[] {
-  const problems: string[] = [];
-  const pageNums = new Set(pages.map((p) => p.page));
-  const regions = new Set<string>();
-  for (const d of docsFor(pattern)) {
-    for (const t of triageDoc(d.doc)) {
-      const ids = regionIds({ ...t, page: d.firstPage + t.page - 1 });
-      [...ids.charts, ...ids.images].forEach((r) => regions.add(r.id));
-    }
-  }
-  const mapped = new Set(map.pages.map((p) => p.page));
-  for (const p of pageNums) if (!mapped.has(p)) problems.push(`page ${p} has no roles`);
-  for (const s of map.sections) for (const p of s.pages) if (!pageNums.has(p)) problems.push(`section ${s.id}: no page ${p}`);
-  const chartIds = new Set(map.charts.map((c) => c.id));
-  for (const s of map.sections) for (const c of s.chartIds) if (!chartIds.has(c)) problems.push(`section ${s.id}: unknown chart ${c}`);
-  for (const c of map.charts) {
-    for (const r of [...c.regionIds, ...c.legendRegionIds]) if (!regions.has(r) && !/^p\d+$/.test(r)) problems.push(`chart ${c.id}: unknown region ${r}`);
-    for (const i of c.sizes) if (i < 0 || i >= map.sizes.length) problems.push(`chart ${c.id}: size index ${i} out of range`);
-  }
-  locateSections(map.sections, pageLoader(pages)).forEach((pos, i) => {
-    const s = map.sections[i];
-    if (!pos) problems.push(`section ${s.id}: start quote not found on p${s.startPage} (after the previous section): "${s.startQuote}"`);
-  });
-  for (const s of map.sections)
-    for (const ch of s.choices) if (!map.options.some((o) => o.choices.includes(ch))) problems.push(`section ${s.id}: unknown choice ${ch}`);
-  return problems;
-}
-
 async function main() {
   const args = process.argv.slice(2);
   const dry = args.includes("--dry");
   const mode = (args.find((a) => a.startsWith("--mode="))?.slice(7) ?? "text") as MapInputMode;
   const patterns = args.filter((a) => !a.startsWith("--"));
-  const OUT = path.join(MAP_DIR, mode);
-  fs.mkdirSync(OUT, { recursive: true });
+  const convex = await connect();
 
   await Promise.all(
     patterns.map(async (pattern) => {
@@ -102,11 +71,13 @@ async function main() {
       const { parsed: map, msg, seconds: secs } = await structured(DocMap, { system: SYSTEM, content: request, effort: "medium", maxTokens: 64000 });
       if (!map) {
         console.log(`${pattern}: FAILED stop_reason=${msg.stop_reason} after ${secs}s`);
-        fs.writeFileSync(path.join(OUT, `${pattern}.failed.json`), JSON.stringify(msg, null, 1));
+        const failed = path.join("data/map", mode, `${pattern}.failed.json`);
+        fs.mkdirSync(path.dirname(failed), { recursive: true });
+        fs.writeFileSync(failed, JSON.stringify(msg, null, 1));
         return;
       }
-      const problems = check(map, pages, pattern);
-      fs.writeFileSync(path.join(OUT, `${pattern}.json`), JSON.stringify({ map, pages, problems, usage: msg.usage, model: MODEL }, null, 1));
+      const problems = checkMap(map, pages, pattern);
+      await convex.mutation(api.maps.save, { pattern, mode, map, problems, model: MODEL, usage: usageOf(msg.usage) });
       console.log(
         `${pattern}: ${secs}s, in=${msg.usage.input_tokens} out=${msg.usage.output_tokens}; ` +
           `${map.sections.length} sections, ${map.charts.length} charts, ${map.reviewNotes.length} review notes, ${problems.length} problems`,
@@ -115,34 +86,7 @@ async function main() {
   );
 }
 
-/** The inspector lists maps from this: one entry per mode and pattern. */
-function writeIndex() {
-  const entries = fs
-    .readdirSync(MAP_DIR, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .flatMap((d) =>
-      fs
-        .readdirSync(path.join(MAP_DIR, d.name))
-        .filter((f) => f.endsWith(".json") && !f.endsWith(".failed.json"))
-        .map((f) => {
-          const { map, problems, usage } = JSON.parse(fs.readFileSync(path.join(MAP_DIR, d.name, f), "utf8"));
-          return {
-            mode: d.name,
-            pattern: f.replace(/\.json$/, ""),
-            title: map.title,
-            sections: map.sections.length,
-            charts: map.charts.length,
-            problems: problems.length,
-            inputTokens: usage.input_tokens,
-          };
-        }),
-    );
-  fs.writeFileSync(path.join(MAP_DIR, "index.json"), JSON.stringify(entries, null, 1));
-}
-
-main()
-  .then(writeIndex)
-  .catch((e) => {
+main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
