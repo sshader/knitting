@@ -1,9 +1,11 @@
-import { expand, generateRow, parseRuns } from "../shared/chartRows";
+import { expandResult, generateRow, parseRuns } from "../shared/chartRows";
 import type { Chart } from "../shared/schema";
 
 /**
  * Every row of a chart as generated instructions, compared with the
  * pattern's own written rows where it has them: how many stitches differ.
+ * Patterns write a decrease round as the stitches it leaves ("k18 A, ..."),
+ * so both sides are compared as worked (see `expandResult`).
  */
 
 export interface RowReport {
@@ -29,8 +31,8 @@ export function chartReport(chart: Chart): { rows: RowReport[]; written: Written
     try {
       const g = generateRow(chart, n);
       const written = chart.writtenRows?.[String(n)];
-      const gen = expand(g.runs);
-      const want = written ? expand(parseRuns(written)) : null;
+      const gen = expandResult(g.runs);
+      const want = written ? expandResult(parseRuns(written)) : null;
       const differs = want ? Math.max(gen.length, want.length) - gen.filter((s, j) => s === want[j]).length : null;
       return { row: n, side: g.side, text: g.text, stitches: gen.length, written, differs };
     } catch (e) {

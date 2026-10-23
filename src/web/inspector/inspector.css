@@ -767,3 +767,37 @@ ul.items {
   margin-bottom: 8px;
   font-size: 15px;
 }
+
+/* Sign in */
+.tabs .sign-out {
+  margin-left: auto;
+}
+.centered {
+  text-align: center;
+  margin-top: 20vh;
+}
+.sign-in {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 280px;
+  margin: 15vh auto 0;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.sign-in h1 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+.sign-in input {
+  padding: 6px 8px;
+  font: inherit;
+}
+button.link {
+  border: none;
+  background: none;
+  color: var(--muted);
+  text-decoration: underline;
+}
