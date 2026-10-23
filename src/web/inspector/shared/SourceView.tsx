@@ -1,24 +1,11 @@
-import { findQuoteSpan } from "../../../extract/anchors";
-import type { BBox } from "../../../extract/pageData";
-import { inReadingOrder } from "../../../extract/readingOrder";
 import { boxStyle } from "./box";
 import type { PageRow } from "./types";
-import { usePageData } from "./usePageData";
+import { useQuoteBoxes, type QuoteBoxes } from "./useQuoteBoxes";
 
 /** Source pages with each quote highlighted where it's found in the page's words. */
 export function SourceView({ sources, pages }: { sources: { page: number; quote: string }[]; pages: PageRow[] }) {
-  const data = usePageData(
-    pages,
-    sources.map((s) => s.page),
-  );
-
-  const byPage = new Map<number, { quote: string; boxes: BBox[] | null }[]>();
-  for (const s of sources) {
-    const d = data.get(s.page);
-    const span = d && findQuoteSpan(d, s.quote);
-    const boxes = d && span ? inReadingOrder(d).words.slice(span.start, span.end + 1).map((w) => w.b) : null;
-    byPage.set(s.page, [...(byPage.get(s.page) ?? []), { quote: s.quote, boxes }]);
-  }
+  const byPage = new Map<number, QuoteBoxes[]>();
+  for (const q of useQuoteBoxes(pages, sources)) byPage.set(q.page, [...(byPage.get(q.page) ?? []), q]);
 
   return (
     <>
@@ -30,8 +17,8 @@ export function SourceView({ sources, pages }: { sources: { page: number; quote:
             <figcaption>
               <b>p{page}</b>{" "}
               {quotes.map((q) => (
-                <span key={q.quote} className={q.boxes || !data.has(page) ? "muted" : "bad"}>
-                  “{q.quote}”{q.boxes || !data.has(page) ? "" : " (not found)"}{" "}
+                <span key={q.quote} className={q.boxes || !q.loaded ? "muted" : "bad"}>
+                  “{q.quote}”{q.boxes || !q.loaded ? "" : " (not found)"}{" "}
                 </span>
               ))}
             </figcaption>

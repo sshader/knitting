@@ -279,12 +279,17 @@ button.primary {
 /* Tabs */
 .tabs {
   display: flex;
+  align-items: center;
   gap: 4px;
   padding: 6px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
   height: 32px;
   box-sizing: border-box;
+}
+.tabs button {
+  padding: 2px 8px;
+  font-size: 12px;
 }
 .tabs button.on {
   background: var(--text);

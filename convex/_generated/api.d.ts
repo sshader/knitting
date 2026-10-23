@@ -16,6 +16,7 @@ import type * as http from "../http.js";
 import type * as maps from "../maps.js";
 import type * as pages from "../pages.js";
 import type * as patterns from "../patterns.js";
+import type * as projects from "../projects.js";
 import type * as sections from "../sections.js";
 import type * as validators from "../validators.js";
 
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   maps: typeof maps;
   pages: typeof pages;
   patterns: typeof patterns;
+  projects: typeof projects;
   sections: typeof sections;
   validators: typeof validators;
 }>;

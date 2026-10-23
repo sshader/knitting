@@ -34,6 +34,10 @@ export const list = query({
           .query("maps")
           .withIndex("by_patternId_and_mode", (q) => q.eq("patternId", p._id))
           .take(2);
+        const extracted = (await ctx.db
+          .query("sections")
+          .withIndex("by_patternId_and_sectionId", (q) => q.eq("patternId", p._id))
+          .first()) !== null;
         return maps.map((m) => ({
           pattern: p.slug,
           mode: m.mode,
@@ -42,6 +46,8 @@ export const list = query({
           charts: m.map.charts.length,
           problems: m.problems.length,
           inputTokens: m.usage.inputTokens,
+          /** Whether stage 2 has run, so there are steps to knit. */
+          extracted,
         }));
       }),
     );

@@ -86,4 +86,20 @@ export default defineSchema({
     model: v.string(),
     usage,
   }).index("by_patternId_and_chartId", ["patternId", "chartId"]),
+
+  /** One knit of a pattern: the size and options chosen, and where the knitter is. */
+  projects: defineTable({
+    ownerId: v.id("users"),
+    patternId: v.id("patterns"),
+    name: v.string(),
+    size: v.number(),
+    choices: v.array(v.string()),
+    /**
+     * The current step (an index into the expanded steps) and the node it
+     * came from, so the place can be found again if a re-extraction shifts
+     * step numbers.
+     */
+    position: v.object({ step: v.number(), node: v.string() }),
+    lastWorkedAt: v.number(),
+  }).index("by_ownerId_and_lastWorkedAt", ["ownerId", "lastWorkedAt"]),
 });

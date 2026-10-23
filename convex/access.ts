@@ -37,3 +37,11 @@ export async function requirePage(ctx: MutationCtx, pageId: Id<"pages">): Promis
   if (!page || pattern?.ownerId !== userId) throw new Error("Page not found");
   return page;
 }
+
+/** A project, checking it belongs to the signed-in user. */
+export async function requireProject(ctx: QueryCtx, projectId: Id<"projects">): Promise<Doc<"projects">> {
+  const userId = await requireUser(ctx);
+  const project = await ctx.db.get("projects", projectId);
+  if (!project || project.ownerId !== userId) throw new Error("Project not found");
+  return project;
+}

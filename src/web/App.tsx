@@ -1,6 +1,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import { useState } from "react";
+import { KnitView } from "./knit/KnitView";
 import { ChartsInspector } from "./inspector/charts/ChartsInspector";
 import { MapInspector } from "./inspector/map/MapInspector";
 import { SectionsInspector } from "./inspector/sections/SectionsInspector";
@@ -9,6 +10,7 @@ import { TriageInspector } from "./inspector/triage/TriageInspector";
 import { SignIn } from "./SignIn";
 
 const VIEWS = {
+  knit: { label: "Knit", Component: KnitView },
   triage: { label: "0 · Triage", Component: TriageInspector },
   map: { label: "1 · Document map", Component: MapInspector },
   sections: { label: "2 · Sections", Component: SectionsInspector },
@@ -39,7 +41,7 @@ function Inspector() {
   const { signOut } = useAuthActions();
   const [view, setView] = useState<View>(() => {
     const v = new URLSearchParams(location.search).get("view");
-    return isView(v) ? v : "triage";
+    return isView(v) ? v : "knit";
   });
   const go = (v: View) => {
     const params = new URLSearchParams(location.search);
