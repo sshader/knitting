@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { findPattern, requirePage, requirePattern } from "./access";
+import { deleteFile, requireUpload } from "./files";
 import { pageTriage, triageReview } from "./validators";
 
 const MAX_PAGES = 500;
@@ -44,6 +45,7 @@ export const save = mutation({
   },
   handler: async (ctx, { pattern, files, ...page }) => {
     const p = await requirePattern(ctx, pattern);
+    if (files) for (const f of [files.json, files.png]) await requireUpload(ctx, p.ownerId, f);
     const existing = await ctx.db
       .query("pages")
       .withIndex("by_patternId_and_page", (q) => q.eq("patternId", p._id).eq("page", page.page))
@@ -54,8 +56,8 @@ export const save = mutation({
       return;
     }
     if (files) {
-      await ctx.storage.delete(existing.json);
-      await ctx.storage.delete(existing.png);
+      await deleteFile(ctx, existing.json);
+      await deleteFile(ctx, existing.png);
     }
     await ctx.db.patch("pages", existing._id, { ...page, ...files });
   },

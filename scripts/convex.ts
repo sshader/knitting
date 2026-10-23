@@ -14,8 +14,14 @@ for (const file of [".env.local", ".env"]) {
   } catch {}
 }
 
+/** The deployment: CONVEX_URL if set (e.g. production), else the dev one from .env.local. */
+const url = process.env.CONVEX_URL ?? process.env.VITE_CONVEX_URL;
+/** HTTP actions are served from the deployment's .site domain. */
+const siteUrl = url?.replace(/\.convex\.cloud$/, ".convex.site");
+
+let token: string | undefined;
+
 export async function connect(flow: "signIn" | "signUp" = "signIn"): Promise<ConvexHttpClient> {
-  const url = process.env.VITE_CONVEX_URL;
   const email = process.env.KNITTING_EMAIL;
   const password = process.env.KNITTING_PASSWORD;
   if (!url) throw new Error("VITE_CONVEX_URL is not set; run `npx convex dev` once");
@@ -24,13 +30,18 @@ export async function connect(flow: "signIn" | "signUp" = "signIn"): Promise<Con
   const { tokens } = await client.action(api.auth.signIn, { provider: "password", params: { email, password, flow } });
   if (!tokens) throw new Error(`Couldn't sign in as ${email}`);
   client.setAuth(tokens.token);
+  token = tokens.token;
   return client;
 }
 
-/** Uploads a local file to Convex storage. */
-export async function upload(client: ConvexHttpClient, file: string, contentType: string): Promise<Id<"_storage">> {
-  const url = await client.mutation(api.files.generateUploadUrl, {});
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": contentType }, body: fs.readFileSync(file) });
+/** Uploads a local file to Convex storage as the signed-in user (see convex/files.ts). */
+export async function upload(_client: ConvexHttpClient, file: string, contentType: string): Promise<Id<"_storage">> {
+  if (!token) throw new Error("connect() first");
+  const res = await fetch(`${siteUrl}/upload`, {
+    method: "POST",
+    headers: { "Content-Type": contentType, Authorization: `Bearer ${token}` },
+    body: fs.readFileSync(file),
+  });
   if (!res.ok) throw new Error(`upload ${file}: ${res.status} ${await res.text()}`);
   return ((await res.json()) as { storageId: Id<"_storage"> }).storageId;
 }

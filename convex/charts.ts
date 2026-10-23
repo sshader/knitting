@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { findPattern, requirePattern } from "./access";
+import { deleteFile, requireUpload } from "./files";
 import { chart, chartNaming, stitchCountCheck, usage } from "./validators";
 
 const MAX_PATTERNS = 200;
@@ -60,11 +61,12 @@ export const save = mutation({
       .query("charts")
       .withIndex("by_patternId_and_chartId", (q) => q.eq("patternId", p._id).eq("chartId", row.chartId))
       .unique();
+    if (existing?.image.file !== row.image.file) await requireUpload(ctx, p.ownerId, row.image.file);
     if (!existing) {
       await ctx.db.insert("charts", { patternId: p._id, ...row });
       return;
     }
-    if (existing.image.file !== row.image.file) await ctx.storage.delete(existing.image.file);
+    if (existing.image.file !== row.image.file) await deleteFile(ctx, existing.image.file);
     await ctx.db.replace("charts", existing._id, { patternId: p._id, ...row });
   },
 });

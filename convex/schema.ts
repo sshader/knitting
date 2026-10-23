@@ -26,6 +26,12 @@ import {
 export default defineSchema({
   ...authTables,
 
+  /** Who uploaded each stored file, so a save can only attach your own files. */
+  uploads: defineTable({
+    ownerId: v.id("users"),
+    file: v.id("_storage"),
+  }).index("by_file", ["file"]),
+
   patterns: defineTable({
     ownerId: v.id("users"),
     /** The pattern's name in data/raw and on the command line: "lucky-stars-beanie-v5". */
