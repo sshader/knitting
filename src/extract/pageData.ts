@@ -27,5 +27,4 @@ export const union = (bs: BBox[]): BBox => [
   Math.max(...bs.map((b) => b[3])),
 ];
 
-export const contains = (outer: BBox, inner: BBox, slack = 0.005) =>
-  inner[0] >= outer[0] - slack && inner[1] >= outer[1] - slack && inner[2] <= outer[2] + slack && inner[3] <= outer[3] + slack;
+export const intersect = (a: BBox, b: BBox): BBox => [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];

@@ -1,14 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import type { PageData } from "./pageData";
+import { RAW, readPage } from "./patterns";
 import { triagePage, type ChartForm } from "./triage";
 import { mismatches, type TriageFixture } from "./triageFixture";
 
 // Runs against locally preprocessed sample patterns (data/raw is gitignored).
-const RAW = "data/raw";
-const page = (slug: string, n: number) =>
-  triagePage(JSON.parse(fs.readFileSync(path.join(RAW, slug, "pages", `p${String(n).padStart(2, "0")}.json`), "utf8")) as PageData);
+const page = (slug: string, n: number) => triagePage(readPage(slug, n));
 const forms = (slug: string, n: number) => page(slug, n).charts.map((c) => c.form).sort() as ChartForm[];
 
 describe.skipIf(!fs.existsSync(RAW))("triage on sample patterns", () => {

@@ -1,5 +1,6 @@
 import { rowStitches } from "../shared/chartRows";
 import type { Chart } from "../shared/schema";
+import { listForSize } from "../shared/sized";
 import type { FlatNode } from "./sectionSchema";
 
 /**
@@ -21,11 +22,10 @@ export function checkStitchCounts(chart: Chart, nodes: FlatNode[], sizeNames: st
     if (n.stitchCount.length === 0) continue;
     for (let size = 0; size < sizeNames.length; size++) {
       if (n.sizes.length && !n.sizes.includes(size)) continue;
-      const usesChart = n.chartRefs.some((r) => (r.ids.length > 1 ? r.ids[size] : r.ids[0]) === chart.id);
+      const usesChart = n.chartRefs.some((r) => listForSize(r.ids, size) === chart.id);
       if (!usesChart) continue;
-      const rows = n.toRow.length ? n.toRow : n.fromRow;
-      const row = rows.length > 1 ? rows[size] : rows[0];
-      const stated = n.stitchCount.length > 1 ? n.stitchCount[size] : n.stitchCount[0];
+      const row = listForSize(n.toRow.length ? n.toRow : n.fromRow, size);
+      const stated = listForSize(n.stitchCount, size);
       if (!row || !stated) continue;
       const perRepeat = rowStitches(chart, row).length;
       if (perRepeat === 0 || stated % perRepeat !== 0) {

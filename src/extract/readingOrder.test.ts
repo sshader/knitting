@@ -1,14 +1,11 @@
 import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, test } from "vitest";
-import type { PageData } from "./pageData";
+import { RAW, readPage } from "./patterns";
 import { inReadingOrder } from "./readingOrder";
 
 // Runs against locally preprocessed sample patterns (data/raw is gitignored).
-const RAW = "data/raw";
 const text = (doc: string, n: number) => {
-  const p: PageData = JSON.parse(fs.readFileSync(path.join(RAW, doc, "pages", `p${String(n).padStart(2, "0")}.json`), "utf8"));
-  return inReadingOrder(p)
+  return inReadingOrder(readPage(doc, n))
     .words.map((w) => w.t)
     .join(" ");
 };

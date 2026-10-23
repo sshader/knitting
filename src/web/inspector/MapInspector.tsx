@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PAGE_ROLES, type DocMap, type PageRole } from "../../extract/docMap";
-import type { PageRef } from "../../extract/mapInput";
+import type { PageRef } from "../../extract/patterns";
 import {
   scoreMap,
   type MapFixture,

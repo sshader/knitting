@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DocMap } from "../../extract/docMap";
-import type { PageRef } from "../../extract/mapInput";
+import type { PageRef } from "../../extract/patterns";
 import { expandPattern, type ExpandedStep } from "../../shared/expand";
 import type { Chart, Section } from "../../shared/schema";
 import type { StepsFixture } from "../../shared/steps";

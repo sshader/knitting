@@ -1,4 +1,4 @@
-import { area, type BBox, type PageData } from "./pageData";
+import { area, intersect, type BBox, type PageData } from "./pageData";
 import { inReadingOrder } from "./readingOrder";
 
 /**
@@ -78,8 +78,4 @@ function mostChars<K>(spans: PageData["spans"], key: (s: PageData["spans"][numbe
   const counts = new Map<K, number>();
   for (const s of spans) counts.set(key(s), (counts.get(key(s)) ?? 0) + s.t.trim().length);
   return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-}
-
-function intersect(a: BBox, b: BBox): BBox {
-  return [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
 }

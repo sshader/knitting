@@ -9,10 +9,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
+    "@auth/core": "^0.41.3",
+    "@convex-dev/auth": "^0.0.96",
     "@hono/node-server": "^2.1.5",
     "convex": "^1.47.0",
     "convex-helpers": "^0.1.128",
     "hono": "^4.13.13",
+    "jose": "^6.2.13",
     "pdfjs-dist": "^6.4.299",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

@@ -7,22 +7,15 @@
  * --mode picks the input format (see mapInput.ts); default text.
  * Writes data/map/<mode>/<pattern>.json: { map, pages, problems, usage }.
  */
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import fs from "node:fs";
 import path from "node:path";
-import { DocMap } from "../src/extract/docMap";
-import { buildMapInput, type MapInputMode, type PageRef } from "../src/extract/mapInput";
-import { regionIds, type PageTriage } from "../src/extract/triage";
 import { locateSections } from "../src/extract/anchors";
-import type { PageData } from "../src/extract/pageData";
-import { docsFor } from "../src/extract/patterns";
+import { DocMap } from "../src/extract/docMap";
+import { buildMapInput, type MapInputMode } from "../src/extract/mapInput";
+import { docsFor, pageLoader, triageDoc, type PageRef } from "../src/extract/patterns";
+import { regionIds } from "../src/extract/triage";
+import { client, MODEL, structured } from "./llm";
 
-try {
-  process.loadEnvFile(".env");
-} catch {}
-
-const MODEL = "claude-opus-5-5";
 const MAP_DIR = "data/map";
 
 const SYSTEM = `You map the structure of knitting patterns for a row-by-row knitting tracker. You are given every page of a pattern (as text with headings marked, or text plus page images), with regions a layout detector found and images of them. Produce a map; a later step extracts the actual row instructions section by section using your map, so page ranges and chart assignments must be right.
@@ -65,8 +58,7 @@ function check(map: DocMap, pages: PageRef[], pattern: string): string[] {
   const pageNums = new Set(pages.map((p) => p.page));
   const regions = new Set<string>();
   for (const d of docsFor(pattern)) {
-    const triage: PageTriage[] = JSON.parse(fs.readFileSync(path.join("data/triage", `${d.doc}.json`), "utf8"));
-    for (const t of triage) {
+    for (const t of triageDoc(d.doc)) {
       const ids = regionIds({ ...t, page: d.firstPage + t.page - 1 });
       [...ids.charts, ...ids.images].forEach((r) => regions.add(r.id));
     }
@@ -80,11 +72,7 @@ function check(map: DocMap, pages: PageRef[], pattern: string): string[] {
     for (const r of [...c.regionIds, ...c.legendRegionIds]) if (!regions.has(r) && !/^p\d+$/.test(r)) problems.push(`chart ${c.id}: unknown region ${r}`);
     for (const i of c.sizes) if (i < 0 || i >= map.sizes.length) problems.push(`chart ${c.id}: size index ${i} out of range`);
   }
-  const load = (n: number): PageData | undefined => {
-    const ref = pages.find((p) => p.page === n);
-    return ref && JSON.parse(fs.readFileSync(path.join("data/raw", ref.doc, "pages", `p${String(ref.docPage).padStart(2, "0")}.json`), "utf8"));
-  };
-  locateSections(map.sections, load).forEach((pos, i) => {
+  locateSections(map.sections, pageLoader(pages)).forEach((pos, i) => {
     const s = map.sections[i];
     if (!pos) problems.push(`section ${s.id}: start quote not found on p${s.startPage} (after the previous section): "${s.startQuote}"`);
   });
@@ -99,36 +87,24 @@ async function main() {
   const mode = (args.find((a) => a.startsWith("--mode="))?.slice(7) ?? "text") as MapInputMode;
   const patterns = args.filter((a) => !a.startsWith("--"));
   const OUT = path.join(MAP_DIR, mode);
-  const client = new Anthropic();
   fs.mkdirSync(OUT, { recursive: true });
 
   await Promise.all(
     patterns.map(async (pattern) => {
       const { content, pages } = buildMapInput(pattern, path.join("data/crops", pattern), mode);
-      const messages: Anthropic.MessageParam[] = [{ role: "user", content: [...content, { type: "text", text: TASK }] }];
+      const request = [...content, { type: "text" as const, text: TASK }];
       if (dry) {
-        const { input_tokens } = await client.messages.countTokens({ model: MODEL, system: SYSTEM, messages });
+        const { input_tokens } = await client.messages.countTokens({ model: MODEL, system: SYSTEM, messages: [{ role: "user", content: request }] });
         const images = content.filter((b) => b.type === "image").length;
         console.log(`${pattern}: ${pages.length} pages, ${images} images, ${input_tokens} input tokens`);
         return;
       }
-      const t0 = Date.now();
-      const stream = client.messages.stream({
-        model: MODEL,
-        max_tokens: 64000,
-        thinking: { type: "adaptive" },
-        output_config: { effort: "medium", format: zodOutputFormat(DocMap) },
-        system: SYSTEM,
-        messages,
-      });
-      const msg = await stream.finalMessage();
-      const secs = Math.round((Date.now() - t0) / 1000);
-      if (msg.stop_reason !== "end_turn" || !msg.parsed_output) {
+      const { parsed: map, msg, seconds: secs } = await structured(DocMap, { system: SYSTEM, content: request, effort: "medium", maxTokens: 64000 });
+      if (!map) {
         console.log(`${pattern}: FAILED stop_reason=${msg.stop_reason} after ${secs}s`);
         fs.writeFileSync(path.join(OUT, `${pattern}.failed.json`), JSON.stringify(msg, null, 1));
         return;
       }
-      const map = msg.parsed_output;
       const problems = check(map, pages, pattern);
       fs.writeFileSync(path.join(OUT, `${pattern}.json`), JSON.stringify({ map, pages, problems, usage: msg.usage, model: MODEL }, null, 1));
       console.log(

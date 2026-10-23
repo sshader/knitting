@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { locateSections, rangeBoxes } from "../../extract/anchors";
 import type { DocMap } from "../../extract/docMap";
-import type { PageRef } from "../../extract/mapInput";
+import type { PageRef } from "../../extract/patterns";
 import type { BBox, PageData } from "../../extract/pageData";
 
 /**

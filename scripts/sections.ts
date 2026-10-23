@@ -8,21 +8,16 @@
  * write the cache; the rest run in parallel and read it.
  * Writes data/sections/<pattern>/<sectionId>.json.
  */
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import type Anthropic from "@anthropic-ai/sdk";
 import fs from "node:fs";
 import path from "node:path";
 import { locateSections } from "../src/extract/anchors";
 import type { DocMap } from "../src/extract/docMap";
-import { buildMapInput, type PageRef } from "../src/extract/mapInput";
-import type { PageData } from "../src/extract/pageData";
+import { buildMapInput, mapContext } from "../src/extract/mapInput";
+import { pageLoader, type PageRef } from "../src/extract/patterns";
 import { checkSection, SectionExtraction, toSection } from "../src/extract/sectionSchema";
+import { MODEL, structured } from "./llm";
 
-try {
-  process.loadEnvFile(".env");
-} catch {}
-
-const MODEL = "claude-opus-5-5";
 const PARALLEL = 4;
 
 const SYSTEM = `You convert knitting pattern instructions into structured rows for a row-by-row knitting tracker. You'll get a whole pattern (page text in reading order, headings marked with #, detected chart regions, image thumbnails) and a reviewed map of its sections. Each request names ONE section; extract only that section, from its start up to where the next section starts.
@@ -53,11 +48,6 @@ Other fields
 - ids: short unique slugs prefixed with the section id, e.g. "yoke-sr3", "yoke-repeat-sr3-4".
 - reviewNotes: anything ambiguous, inconsistent, or that you had to interpret.`;
 
-function mapContext(map: DocMap) {
-  const { pages: _pages, ...rest } = map;
-  return `=== Reviewed map ===\n${JSON.stringify(rest, null, 1)}`;
-}
-
 async function main() {
   const [pattern, ...only] = process.argv.slice(2);
   if (!pattern) throw new Error("usage: sections.ts <pattern> [sectionId...]");
@@ -65,40 +55,30 @@ async function main() {
   const outDir = path.join("data/sections", pattern);
   fs.mkdirSync(outDir, { recursive: true });
 
-  const load = (n: number): PageData | undefined => {
-    const ref = pages.find((p) => p.page === n);
-    return ref && JSON.parse(fs.readFileSync(path.join("data/raw", ref.doc, "pages", `p${String(ref.docPage).padStart(2, "0")}.json`), "utf8"));
-  };
+  const load = pageLoader(pages);
 
   const { content } = buildMapInput(pattern, path.join("data/crops", pattern), "text");
-  const prefix: Anthropic.ContentBlockParam[] = [...content, { type: "text", text: mapContext(map), cache_control: { type: "ephemeral" } }];
+  const prefix: Anthropic.ContentBlockParam[] = [...content, { ...mapContext(map), cache_control: { type: "ephemeral" } }];
 
   const starts = locateSections(map.sections, load);
   const targets = map.sections.map((s, i) => ({ s, next: map.sections[i + 1] })).filter(({ s }) => only.length === 0 || only.includes(s.id));
-  const client = new Anthropic();
 
   async function extract({ s, next }: (typeof targets)[number]) {
     const task =
       `Extract section "${s.id}" (${s.title}). It starts on page ${s.startPage} at "${s.startQuote}"` +
       (next ? ` and ends where section "${next.id}" (${next.title}) starts on page ${next.startPage} at "${next.startQuote}".` : " and runs to the end of the pattern's instructions.") +
       (starts[map.sections.indexOf(s)] ? "" : " (Its start quote could not be located automatically; use the map's page numbers.)");
-    const t0 = Date.now();
-    const stream = client.messages.stream({
-      model: MODEL,
-      max_tokens: 64000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "high", format: zodOutputFormat(SectionExtraction) },
+    const { parsed: x, msg, seconds: secs } = await structured(SectionExtraction, {
       system: SYSTEM,
-      messages: [{ role: "user", content: [...prefix, { type: "text", text: task }] }],
+      content: [...prefix, { type: "text", text: task }],
+      effort: "high",
+      maxTokens: 64000,
     });
-    const msg = await stream.finalMessage();
-    const secs = Math.round((Date.now() - t0) / 1000);
     const out: Record<string, unknown> = { section: s.id, model: MODEL, usage: msg.usage, stop_reason: msg.stop_reason, seconds: secs };
-    if (msg.stop_reason !== "end_turn" || !msg.parsed_output) {
+    if (!x) {
       out.error = `stop_reason ${msg.stop_reason}`;
       out.raw = msg.content;
     } else {
-      const x = msg.parsed_output;
       out.extraction = x;
       out.problems = checkSection(x, map, load);
       try {
@@ -109,7 +89,6 @@ async function main() {
     }
     fs.writeFileSync(path.join(outDir, `${s.id}.json`), JSON.stringify(out, null, 1));
     const u = msg.usage;
-    const x = msg.parsed_output;
     console.log(
       `${s.id.padEnd(28)} ${String(secs).padStart(3)}s  in=${u.input_tokens} cacheRead=${u.cache_read_input_tokens ?? 0} cacheWrite=${u.cache_creation_input_tokens ?? 0} out=${u.output_tokens}` +
         (x ? `  ${x.nodes.length} nodes, ${(out.problems as string[]).length} problems, ${x.reviewNotes.length} notes` : `  FAILED: ${out.error}`) +

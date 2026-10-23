@@ -11,28 +11,21 @@
  *    pattern's written rows and the stitch counts stated in its sections.
  * Writes data/charts/<pattern>/<chartId>.json and data/charts/index.json.
  */
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { spawnSync } from "node:child_process";
+import type Anthropic from "@anthropic-ai/sdk";
 import fs from "node:fs";
 import path from "node:path";
 import { checkStitchCounts } from "../src/extract/chartChecks";
 import { ChartNaming } from "../src/extract/chartSchema";
 import type { DocMap } from "../src/extract/docMap";
-import { buildMapInput, type PageRef } from "../src/extract/mapInput";
-import type { PageData } from "../src/extract/pageData";
-import { PDF_DIR } from "../src/extract/patterns";
+import { buildMapInput, mapContext, png } from "../src/extract/mapInput";
+import { docsFor, PDF_DIR, readPage, triageDoc, type PageRef } from "../src/extract/patterns";
+import { runPython } from "../src/extract/python";
 import type { FlatNode } from "../src/extract/sectionSchema";
-import type { PageTriage } from "../src/extract/triage";
 import { parseWrittenColorRows } from "../src/extract/writtenChart";
 import { expand, formatRuns, generateRow, parseRuns } from "../src/shared/chartRows";
 import { Chart, type LegendEntry } from "../src/shared/schema";
+import { structured } from "./llm";
 
-try {
-  process.loadEnvFile(".env");
-} catch {}
-
-const MODEL = "claude-opus-5-5";
 const CELL_TYPES = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const SYSTEM = `You help turn knitting charts into data for a row-by-row knitting tracker. You'll get a whole pattern (page text in reading order, detected regions, image thumbnails) and its reviewed map, then its charts. Code has already found each chart's grid and grouped its cells into types by appearance; your job is to say what each type means.
@@ -40,17 +33,6 @@ const SYSTEM = `You help turn knitting charts into data for a row-by-row knittin
 For each chart give its legend: one entry per symbol in the chart's key, plus plain cells the key implies (in colorwork, an unmarked cell is "knit in that color"). Give each entry a single-character key. rs/ws are the stitch in the pattern's own abbreviations ("k", "p", "m1", "k2tog", "2/1 RPC"); for charts worked in the round leave ws "". color is the pattern's own name for the yarn ("MC", "CC", "A") in colorwork, "" otherwise. "No stitch" / decreased-away cells: noStitch true. Then assign every cell type to a legend key.
 
 Also from each chart's image: the number printed on its bottom row (firstRow), reading direction ("rtl" if worked in the round, every row right to left; "alternate" if flat), and any repeat box as printed column numbers (columns are numbered from the right).`;
-
-const run = (cmd: string, args: string[]) => {
-  const r = spawnSync(cmd, args, { encoding: "utf8" });
-  if (r.status !== 0) throw new Error(`${cmd} ${args.join(" ")}: ${r.stderr}`);
-  return r.stdout;
-};
-const png = (file: string): Anthropic.ImageBlockParam => ({
-  type: "image",
-  source: { type: "base64", media_type: "image/png", data: fs.readFileSync(file).toString("base64") },
-});
-const pagePath = (r: PageRef) => path.join("data/raw", r.doc, "pages", `p${String(r.docPage).padStart(2, "0")}.json`);
 
 async function main() {
   const [pattern, ...only] = process.argv.slice(2);
@@ -63,15 +45,14 @@ async function main() {
     const [, pageStr, kind, idx] = /^p(\d+)\.([ci])(\d+)$/.exec(c.regionIds[0] ?? "") ?? [];
     if (kind !== "i") throw new Error(`${c.id}: only raster (image) charts so far; region ${c.regionIds[0]}`);
     const ref = pages.find((p) => p.page === Number(pageStr))!;
-    const triage: PageTriage[] = JSON.parse(fs.readFileSync(`data/triage/${ref.doc}.json`, "utf8"));
-    const bbox = triage[ref.docPage - 1].images[Number(idx) - 1].bbox;
-    const pdf = path.join(PDF_DIR, JSON.parse(fs.readFileSync(path.join("data/raw", ref.doc, "meta.json"), "utf8")).source);
+    const bbox = triageDoc(ref.doc)[ref.docPage - 1].images[Number(idx) - 1].bbox;
+    const pdf = path.join(PDF_DIR, docsFor(pattern).find((d) => d.doc === ref.doc)!.source);
     const outDir = path.join("data/charts", pattern, c.id);
     fs.mkdirSync(outDir, { recursive: true });
     const crop = path.join(outDir, "chart.png");
     fs.writeFileSync(path.join(outDir, "crop.json"), JSON.stringify([{ page: ref.docPage, bbox, out: crop, maxPx: 1600 }]));
-    run(".venv/bin/python", ["-I", "scripts/render_crops.py", pdf, path.join(outDir, "crop.json")]);
-    run(".venv/bin/python", ["-I", "scripts/raster_grid.py", pdf, String(ref.docPage), bbox.join(","), outDir]);
+    runPython("render_crops.py", [pdf, path.join(outDir, "crop.json")]);
+    runPython("raster_grid.py", [pdf, String(ref.docPage), bbox.join(","), outDir]);
     const grid = JSON.parse(fs.readFileSync(path.join(outDir, "grid.json"), "utf8"));
     const pad = 0.01;
     const cropBox = [Math.max(0, bbox[0] - pad), Math.max(0, bbox[1] - pad), Math.min(1, bbox[2] + pad), Math.min(1, bbox[3] + pad)];
@@ -81,42 +62,29 @@ async function main() {
 
   // 2. One naming call for the pattern.
   const { content } = buildMapInput(pattern, path.join("data/crops", pattern), "text");
-  const { pages: _p, ...mapRest } = map;
-  const t0 = Date.now();
-  const msg = await new Anthropic().messages
-    .stream({
-      model: MODEL,
-      max_tokens: 32000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "high", format: zodOutputFormat(ChartNaming) },
-      system: SYSTEM,
-      messages: [
+  const { parsed: naming, msg, seconds: secs } = await structured(ChartNaming, {
+    system: SYSTEM,
+    effort: "high",
+    maxTokens: 32000,
+    content: [
+      ...content,
+      { ...mapContext(map), cache_control: { type: "ephemeral" } },
+      ...prepared.flatMap(({ c, ref, grid, crop }): Anthropic.ContentBlockParam[] => [
         {
-          role: "user",
-          content: [
-            ...content,
-            { type: "text", text: `=== Reviewed map ===\n${JSON.stringify(mapRest, null, 1)}`, cache_control: { type: "ephemeral" } },
-            ...prepared.flatMap(({ c, ref, grid, crop }): Anthropic.ContentBlockParam[] => [
-              {
-                type: "text",
-                text:
-                  `=== Chart "${c.id}" (${c.title}), page ${ref.page}: ${grid.cols} columns x ${grid.rows} rows ===` +
-                  (c.writtenPages.length ? `\nIts rows are also written out on pages ${c.writtenPages.join(", ")} with yarn colors carried by text color; give textColors for those pages' "Text colors" legends.` : ""),
-              },
-              png(crop),
-              ...grid.classes.flatMap((k: any): Anthropic.ContentBlockParam[] => [
-                { type: "text", text: `Cell type ${k.id}: ${k.count} cells, fill rgb(${k.rgb.join(", ")})${k.symbol ? ", something drawn on it" : ""}, e.g. row ${k.example[0]} column ${k.example[1]}:` },
-                png(k.sample),
-              ]),
-            ]),
-          ],
+          type: "text",
+          text:
+            `=== Chart "${c.id}" (${c.title}), page ${ref.page}: ${grid.cols} columns x ${grid.rows} rows ===` +
+            (c.writtenPages.length ? `\nIts rows are also written out on pages ${c.writtenPages.join(", ")} with yarn colors carried by text color; give textColors for those pages' "Text colors" legends.` : ""),
         },
-      ],
-    })
-    .finalMessage();
-  if (msg.stop_reason !== "end_turn" || !msg.parsed_output) throw new Error(`naming: stop_reason ${msg.stop_reason}`);
-  const naming = msg.parsed_output;
-  const secs = Math.round((Date.now() - t0) / 1000);
+        png(crop),
+        ...grid.classes.flatMap((k: any): Anthropic.ContentBlockParam[] => [
+          { type: "text", text: `Cell type ${k.id}: ${k.count} cells, fill rgb(${k.rgb.join(", ")})${k.symbol ? ", something drawn on it" : ""}, e.g. row ${k.example[0]} column ${k.example[1]}:` },
+          png(k.sample),
+        ]),
+      ]),
+    ],
+  });
+  if (!naming) throw new Error(`naming: stop_reason ${msg.stop_reason}`);
   console.log(`naming: ${secs}s, out=${msg.usage.output_tokens}, cache write=${msg.usage.cache_creation_input_tokens ?? 0} read=${msg.usage.cache_read_input_tokens ?? 0}`);
 
   // 3. Build, generate, check.
@@ -147,7 +115,7 @@ async function main() {
 
     let writtenRows: Record<string, string> | undefined;
     if (c.writtenPages.length && naming.textColors.length) {
-      const wp: PageData[] = c.writtenPages.map((n) => JSON.parse(fs.readFileSync(pagePath(pages.find((p) => p.page === n)!), "utf8")));
+      const wp = c.writtenPages.map((n) => pages.find((p) => p.page === n)!).map((r) => readPage(r.doc, r.docPage));
       const parsed = parseWrittenColorRows(wp, Object.fromEntries(naming.textColors.map((t) => [t.hex.toLowerCase(), t.color])));
       const best = parsed.sort((a, b) => b.rows.size - a.rows.size)[0];
       if (best) writtenRows = Object.fromEntries([...best.rows].map(([n, runs]) => [String(n), formatRuns(runs)]));

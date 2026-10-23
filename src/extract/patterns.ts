@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { PageData } from "./pageData";
+import { triagePage, type PageTriage } from "./triage";
 
 /**
  * Which preprocessed documents (data/raw/<doc>) make up each pattern. Most
@@ -43,4 +45,35 @@ export function docsFor(pattern: string): DocInfo[] {
     next += info.pageCount;
     return info;
   });
+}
+
+/** A page of a pattern: its global number and where it lives in its document. */
+export interface PageRef {
+  page: number;
+  doc: string;
+  docPage: number;
+}
+
+export function pageRefs(pattern: string): PageRef[] {
+  return docsFor(pattern).flatMap((d) => Array.from({ length: d.pageCount }, (_, i) => ({ page: d.firstPage + i, doc: d.doc, docPage: i + 1 })));
+}
+
+/** data/raw/<doc>/pages/p07.<ext>, as written by scripts/extract_pdf.py. */
+export const pageFile = (doc: string, docPage: number, ext: "json" | "png" | "txt") =>
+  path.join(RAW, doc, "pages", `p${String(docPage).padStart(2, "0")}.${ext}`);
+
+export const readPage = (doc: string, docPage: number): PageData => JSON.parse(fs.readFileSync(pageFile(doc, docPage, "json"), "utf8"));
+
+/** Page data by global page number, for code that works on a whole pattern. */
+export function pageLoader(refs: PageRef[]): (page: number) => PageData | undefined {
+  return (page) => {
+    const ref = refs.find((r) => r.page === page);
+    return ref && readPage(ref.doc, ref.docPage);
+  };
+}
+
+/** Stage 0 for one document. Pure code and fast, so it's recomputed rather than cached. */
+export function triageDoc(doc: string): PageTriage[] {
+  const { pageCount } = JSON.parse(fs.readFileSync(path.join(RAW, doc, "meta.json"), "utf8"));
+  return Array.from({ length: pageCount }, (_, i) => triagePage(readPage(doc, i + 1)));
 }

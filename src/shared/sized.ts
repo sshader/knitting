@@ -16,3 +16,6 @@ export function valueForSize<T>(v: Sized<T> | undefined, size: number): T | unde
 
 /** Whether a node limited to `sizes` (omitted = all) applies to this size. */
 export const appliesToSize = (sizes: number[] | undefined, size: number) => !sizes || sizes.length === 0 || sizes.includes(size);
+
+/** A stage 2 list field ([] = unset, [n] = all sizes, else one per size) for one size. */
+export const listForSize = <T>(xs: T[], size: number): T | undefined => (xs.length > 1 ? xs[size] : xs[0]);

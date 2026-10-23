@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { findQuoteSpan } from "../../extract/anchors";
 import type { DocMap } from "../../extract/docMap";
 import type { Verdict } from "../../extract/mapFixture";
-import type { PageRef } from "../../extract/mapInput";
+import type { PageRef } from "../../extract/patterns";
 import type { BBox, PageData } from "../../extract/pageData";
 import { inReadingOrder } from "../../extract/readingOrder";
 import type { FlatNode, SectionExtraction } from "../../extract/sectionSchema";

@@ -1,4 +1,4 @@
-import { area, union, type BBox, type PageData } from "./pageData";
+import { area, intersect, union, type BBox, type PageData } from "./pageData";
 
 /**
  * Stage 0: deterministic page triage. Finds chart-like regions and how they're
@@ -283,10 +283,6 @@ function mergeRegions(regions: ChartRegion[]): ChartRegion[] {
       evidence: [...font, ...members.filter((m) => m.form !== "font")].map((m) => m.evidence).join(" + "),
     };
   });
-}
-
-function intersect(a: BBox, b: BBox): BBox {
-  return [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
 }
 
 /** Stable ids for a page's detected regions: "p7.c1" for charts, "p3.i2" for content images. */
