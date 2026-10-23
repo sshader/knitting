@@ -39,8 +39,9 @@ One-time setup:
 Later, maybe:
 - Backups: a scheduled Convex backup (there's a convex-backup skill).
 - A custom domain: add it in Vercel, then update `SITE_URL`.
-- Error reporting: an error boundary with a reload button exists only as
-  React's default today (a blank screen); add one before friends use it.
+- Error reporting: a crash shows "Something went wrong" with a reload
+  button, but nothing reports it to you; Convex's log streams or Sentry
+  could.
 
 ### Sharing patterns with friends
 
