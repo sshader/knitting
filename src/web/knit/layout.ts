@@ -2,7 +2,7 @@ import type { DockviewApi } from "dockview-react";
 
 /**
  * The workspace layout: a default arrangement, and whatever the knitter
- * makes of it, remembered in this browser.
+ * makes of it (moved, resized, panels hidden), remembered in this browser.
  */
 
 const KEY = "knit-layout-v1";
@@ -13,6 +13,43 @@ export const PANELS = {
   chart: "Chart",
   pdf: "Pattern",
 } as const;
+export type PanelId = keyof typeof PANELS;
+export const PANEL_IDS = Object.keys(PANELS) as PanelId[];
+
+/** Where each panel goes when shown again: next to the first of these that's open. */
+const PLACES: Record<PanelId, { next: PanelId; direction: "left" | "right" | "above" | "below" }[]> = {
+  instructions: [
+    { next: "steps", direction: "above" },
+    { next: "chart", direction: "left" },
+    { next: "pdf", direction: "left" },
+  ],
+  steps: [
+    { next: "instructions", direction: "below" },
+    { next: "chart", direction: "left" },
+    { next: "pdf", direction: "left" },
+  ],
+  chart: [
+    { next: "pdf", direction: "above" },
+    { next: "instructions", direction: "right" },
+    { next: "steps", direction: "right" },
+  ],
+  pdf: [
+    { next: "chart", direction: "below" },
+    { next: "instructions", direction: "right" },
+    { next: "steps", direction: "right" },
+  ],
+};
+
+export function showPanel(api: DockviewApi, id: PanelId) {
+  if (api.getPanel(id)) return;
+  const place = PLACES[id].find((p) => api.getPanel(p.next));
+  api.addPanel({ id, component: id, title: PANELS[id], ...(place ? { position: { referencePanel: place.next, direction: place.direction } } : {}) });
+}
+
+export function hidePanel(api: DockviewApi, id: PanelId) {
+  const panel = api.getPanel(id);
+  if (panel) api.removePanel(panel);
+}
 
 /** Instructions over the step outline on the left; the chart over the pattern page on the right. */
 export function defaultLayout(api: DockviewApi) {
@@ -30,7 +67,7 @@ export function restoreLayout(api: DockviewApi) {
     const saved = localStorage.getItem(KEY);
     if (saved) {
       api.fromJSON(JSON.parse(saved));
-      if (Object.keys(PANELS).every((id) => api.getPanel(id))) return;
+      if (api.panels.length > 0) return;
     }
   } catch {
     // A layout from an older version, or storage unavailable: start fresh.

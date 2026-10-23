@@ -88,6 +88,56 @@ button.quiet:hover {
   color: var(--text);
 }
 
+/* Panels menu */
+.panels-menu {
+  position: relative;
+}
+.panels-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 1000;
+  min-width: 170px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.panels-popover label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.panels-popover label:hover {
+  background: var(--bg);
+}
+.panels-popover hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 6px 0;
+}
+.panels-popover button {
+  width: 100%;
+  text-align: left;
+}
+.knit-dock button.maximize {
+  margin: 0 8px;
+  padding: 2px 6px;
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+}
+.knit-dock button.maximize:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
 /* Dockview, in the app's colors */
 .knit-dock {
   flex: 1;
@@ -220,14 +270,119 @@ button.quiet:hover {
   line-height: 1.5;
   color: #555;
 }
-.step-until {
-  display: inline-block;
-  margin-bottom: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
+/* Open-ended repeat */
+.repeat-until {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
   background: var(--accent-soft);
-  color: var(--accent);
+}
+.repeat-until-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.repeat-until-count {
+  font-size: 13px;
+}
+.repeat-until-count b {
+  font-size: 18px;
+}
+.repeat-until-goal {
+  font-size: 17px;
+  margin-top: 2px;
+}
+.repeat-until-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.repeat-until-actions button {
   font-size: 14px;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+.repeat-until-actions button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* A chart row's runs, to mark your place in */
+.row-runs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 2px;
+}
+.row-runs .run {
+  font: inherit;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  line-height: 1.45;
+}
+/* Commas between runs, but not before the repeat's closing star. */
+.row-runs .run:has(+ .run)::after,
+.row-runs .run:has(+ .run-repeat)::after,
+.row-runs .run-repeat:has(+ .run)::after {
+  content: ",";
+}
+.row-runs .run:hover {
+  border-color: var(--line);
+}
+.row-runs .run.done {
+  color: #b5aea6;
+}
+.row-runs .run.done .yarn-swatch {
+  opacity: 0.4;
+}
+.row-runs .run.current {
+  background: #fff4dd;
+  border-color: var(--current-row);
+  box-shadow: 0 0 0 1px var(--current-row);
+}
+.run-repeat {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 2px;
+}
+.run-star {
+  color: var(--muted);
+}
+.run-times {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 6px;
+  font-size: 0.75em;
+  color: var(--muted);
+}
+.repeat-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: #fff4dd;
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+.repeat-counter button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  line-height: 1;
+}
+.run-hint {
+  flex-basis: 100%;
+  margin-top: 6px;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--muted);
 }
 .step-also {
   margin-top: 14px;
@@ -363,6 +518,10 @@ button.quiet:hover {
   text-align: left;
   font-size: 14px;
 }
+/* The current item is already marked, and moving is by the global keys, so no focus ring. */
+.steps-outline button:focus {
+  outline: none;
+}
 .steps-outline button:hover {
   background: var(--bg);
 }
@@ -456,6 +615,13 @@ button.quiet:hover {
 .knit-chart .repeat-bracket text {
   fill: var(--muted);
 }
+.knit-chart .chart-run {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 3;
+  rx: 2;
+  pointer-events: none;
+}
 .knit-chart .chart-upcoming {
   fill: none;
   stroke: var(--current-row);
@@ -507,6 +673,28 @@ button.quiet:hover {
 .pdf-scroll .page img {
   display: block;
   width: 100%;
+}
+/* The step's lines: a box with a pointer in the margin, the rest of the page a little dimmed. */
+.pdf-scroll .page {
+  overflow: hidden;
+}
+.source-spot {
+  position: absolute;
+  border: 2px solid var(--current-row);
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.07);
+  box-shadow: 0 0 0 100vmax rgba(40, 30, 20, 0.12);
+  pointer-events: none;
+  transition: top 0.2s ease, height 0.2s ease;
+}
+.source-pointer {
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 8px solid transparent;
+  border-left: 10px solid var(--current-row);
+  border-right: none;
 }
 .pdf-scroll .chart-img {
   margin: 8px;

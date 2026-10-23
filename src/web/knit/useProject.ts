@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import type { Position } from "./navigation";
 
 /** A project and a way to move its position; moves show at once (optimistic) and save in the background. */
 export function useProject(projectId: Id<"projects">) {
@@ -15,6 +16,6 @@ export function useProject(projectId: Id<"projects">) {
       }),
     [moveTo],
   );
-  const move = useCallback((position: { step: number; node: string }) => void optimisticMoveTo({ projectId, position }), [optimisticMoveTo, projectId]);
+  const move = useCallback((position: Position) => void optimisticMoveTo({ projectId, position }), [optimisticMoveTo, projectId]);
   return { project, move };
 }

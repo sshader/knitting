@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requirePattern, requireProject } from "./access";
+import { position } from "./validators";
 
 const MAX_PROJECTS = 100;
 
@@ -47,7 +48,7 @@ export const start = mutation({
 });
 
 export const moveTo = mutation({
-  args: { projectId: v.id("projects"), position: v.object({ step: v.number(), node: v.string() }) },
+  args: { projectId: v.id("projects"), position },
   handler: async (ctx, { projectId, position }) => {
     await requireProject(ctx, projectId);
     await ctx.db.patch("projects", projectId, { position, lastWorkedAt: Date.now() });

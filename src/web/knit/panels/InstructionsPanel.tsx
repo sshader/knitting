@@ -1,17 +1,20 @@
 import type { ExpandedStep } from "../../../shared/expand";
 import { useKnit } from "../KnitContext";
-import { ColoredRunText } from "./ColoredRunText";
+import * as nav from "../navigation";
+import { runsForStep } from "../rowRuns";
+import { RepeatUntil } from "./RepeatUntil";
+import { RowRunsView } from "./RowRunsView";
 
 /**
  * The current step, large: what to work, the chart row written out, and the
  * stitch count, with the previous and next steps for context.
  */
 export function InstructionsPanel() {
-  const { steps, index, step, charts, go } = useKnit();
+  const { steps, index, step, charts, position, prev, next, setMark } = useKnit();
   if (!step) return <div className="panel-empty">No steps for this size and options.</div>;
   const chart = step.chart ? charts[step.chart.chartId]?.chart : undefined;
   // With a chart row, the generated row is what to work; the section's text is context.
-  const primary = step.chart?.text;
+  const row = runsForStep(step, charts);
 
   return (
     <div className="instructions-panel">
@@ -25,14 +28,14 @@ export function InstructionsPanel() {
           )}
         </div>
         <StepLabel label={step.label} />
-        {step.until && <div className="step-until">Repeat until {step.until.replace(/^until\s+/i, "")}</div>}
+        <RepeatUntil />
 
-        {primary && (
-          <div className={`step-primary ${primary.length > 140 ? "long" : ""}`}>
-            <ColoredRunText text={primary} chart={chart} />
+        {row && chart && (
+          <div className={`step-primary ${(step.chart?.text.length ?? 0) > 140 ? "long" : ""}`}>
+            <RowRunsView runs={row.runs} layout={row.layout} mark={position.mark} chart={chart} onMark={setMark} />
           </div>
         )}
-        {step.instruction && <div className={primary ? "step-context" : "step-primary"}>{step.instruction}</div>}
+        {step.instruction && <div className={row ? "step-context" : "step-primary"}>{step.instruction}</div>}
 
         {step.also?.map((a) => (
           <div key={a} className="step-also">
@@ -58,8 +61,8 @@ export function InstructionsPanel() {
       </div>
 
       <nav className="step-neighbors">
-        <Neighbor step={steps[index - 1]} direction="prev" onClick={() => go(index - 1)} />
-        <Neighbor step={steps[index + 1]} direction="next" onClick={() => go(index + 1)} />
+        <Neighbor step={index > 0 || position.pass ? steps[nav.prev(steps, position).step] : undefined} direction="prev" onClick={prev} />
+        <Neighbor step={index < steps.length - 1 || nav.untilBlock(steps, index) ? steps[nav.next(steps, position).step] : undefined} direction="next" onClick={next} />
       </nav>
     </div>
   );

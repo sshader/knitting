@@ -3,6 +3,7 @@ import { isRS } from "../../../shared/chartRows";
 import { ChartLegend } from "../chart/ChartLegend";
 import { chartSize, KnitChart, rowCenter } from "../chart/KnitChart";
 import { useKnit } from "../KnitContext";
+import { runsForStep } from "../rowRuns";
 import { chartFocus, stepForChartRow } from "../steps";
 import { useElementWidth } from "../useElementWidth";
 
@@ -14,8 +15,9 @@ const ZOOMS = [0.75, 1, 1.25, 1.5, 2, 2.5, 3];
  * row in the middle of the view. Clicking a row jumps to that row's step.
  */
 export function ChartPanel() {
-  const { steps, index, charts, go } = useKnit();
+  const { steps, index, step, position, charts, go } = useKnit();
   const focus = chartFocus(steps, index);
+  const marked = position.mark && runsForStep(step, charts)?.runs[position.mark.run];
   const c = focus ? charts[focus.chartId] : undefined;
   const scroller = useRef<HTMLDivElement>(null);
   const width = useElementWidth(scroller);
@@ -62,6 +64,7 @@ export function ChartPanel() {
           chart={c.chart}
           row={focus.row}
           upcomingRow={focus.upcoming?.row ?? null}
+          run={marked?.cols}
           scale={scale}
           onRow={(r) => {
             const j = stepForChartRow(steps, index, c.chartId, r);

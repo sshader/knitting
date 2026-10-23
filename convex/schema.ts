@@ -9,6 +9,7 @@ import {
   mapMode,
   mapReview,
   pageTriage,
+  position,
   sectionExtraction,
   sectionsReview,
   stitchCountCheck,
@@ -94,12 +95,7 @@ export default defineSchema({
     name: v.string(),
     size: v.number(),
     choices: v.array(v.string()),
-    /**
-     * The current step (an index into the expanded steps) and the node it
-     * came from, so the place can be found again if a re-extraction shifts
-     * step numbers.
-     */
-    position: v.object({ step: v.number(), node: v.string() }),
+    position,
     lastWorkedAt: v.number(),
   }).index("by_ownerId_and_lastWorkedAt", ["ownerId", "lastWorkedAt"]),
 });

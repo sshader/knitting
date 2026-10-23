@@ -17,6 +17,7 @@ export function KnitChart({
   chart,
   row,
   upcomingRow,
+  run,
   scale,
   onRow,
 }: {
@@ -25,6 +26,8 @@ export function KnitChart({
   row: number | null;
   /** With no current row, the row coming up next, marked lightly. */
   upcomingRow: number | null;
+  /** In the current row, the columns of the run being worked (1 = rightmost). */
+  run?: { from: number; to: number };
   scale: number;
   onRow: (r: number) => void;
 }) {
@@ -100,6 +103,9 @@ export function KnitChart({
           <rect x={-1} y={-1} width={width + 2} height={yOf(row) + 1} className="chart-dim" />
           <rect x={-1} y={yOf(row) + CELL} width={width + 2} height={height - yOf(row) - CELL + 1} className="chart-dim" />
           <rect x={-1.5} y={yOf(row) - 1.5} width={width + 3} height={CELL + 3} className="chart-current" vectorEffect="non-scaling-stroke" />
+          {run && (
+            <rect x={xOf(run.to) - 1} y={yOf(row) - 3} width={xOf(run.from) - xOf(run.to) + CELL + 2} height={CELL + 6} className="chart-run" vectorEffect="non-scaling-stroke" />
+          )}
           {scale >= 0.8 && <DirectionArrow rs={isRS(chart, row)} y={yOf(row) + CELL / 2} width={width} />}
         </>
       )}

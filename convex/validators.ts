@@ -50,3 +50,17 @@ export const stitchCountCheck = v.object({
   ),
   problems: v.array(v.string()),
 });
+
+/**
+ * Where a knitter is in a project: the current step (an index into the
+ * expanded steps) and the node it came from, so the place can be found again
+ * if a re-extraction shifts step numbers.
+ */
+export const position = v.object({
+  step: v.number(),
+  node: v.string(),
+  /** In an open-ended repeat ("until it measures 30 cm"): how many times the block has been worked before this pass. */
+  pass: v.optional(v.number()),
+  /** Within a chart row: the run being worked, and which time through the row's repeat. */
+  mark: v.optional(v.object({ run: v.number(), repeat: v.number() })),
+});

@@ -1,8 +1,11 @@
 import { useKnit } from "./KnitContext";
+import { PanelsMenu } from "./PanelsMenu";
+import { untilBlock } from "./navigation";
 
 /** Project, size, how far along, and the big previous/next buttons. */
-export function TopBar({ onExit, onResetLayout }: { onExit: () => void; onResetLayout: () => void }) {
-  const { project, map, steps, index, step, go } = useKnit();
+export function TopBar({ onExit, panels }: { onExit: () => void; panels: Parameters<typeof PanelsMenu>[0] }) {
+  const { project, map, steps, index, step, position, next, prev, finishRepeat } = useKnit();
+  const repeatEnds = untilBlock(steps, index)?.end === index;
   const done = steps.length ? (index + 1) / steps.length : 0;
   const size = map.sizes[project.size];
   const setup = [/size/i.test(size) ? size : `Size ${size}`, ...project.choices].join(" · ");
@@ -27,16 +30,25 @@ export function TopBar({ onExit, onResetLayout }: { onExit: () => void; onResetL
         </div>
       </div>
       <div className="knit-nav">
-        <button onClick={() => go(index - 1)} disabled={index === 0} title="Previous (← or k)">
+        <button onClick={prev} disabled={index === 0 && !position.pass} title="Previous (← or k)">
           ←
         </button>
-        <button className="primary" onClick={() => go(index + 1)} disabled={index >= steps.length - 1} title="Next (→, j, or space)">
-          Next →
-        </button>
+        {repeatEnds ? (
+          <>
+            <button className="primary" onClick={next} title="Work the repeat again (→, j, or space)">
+              ↺ Again
+            </button>
+            <button onClick={finishRepeat} title="It measures enough: go on">
+              Done →
+            </button>
+          </>
+        ) : (
+          <button className="primary" onClick={next} disabled={index >= steps.length - 1} title="Next (→, j, or space)">
+            Next →
+          </button>
+        )}
       </div>
-      <button className="quiet" onClick={onResetLayout} title="Put the panels back where they started">
-        Reset layout
-      </button>
+      <PanelsMenu {...panels} />
     </header>
   );
 }
