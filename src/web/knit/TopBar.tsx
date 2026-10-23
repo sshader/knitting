@@ -1,9 +1,17 @@
 import { useKnit } from "./KnitContext";
-import { PanelsMenu } from "./PanelsMenu";
+import { SettingsMenu } from "../SettingsMenu";
+import type { PanelId } from "./layout";
+import { PanelsSection } from "./PanelsSection";
 import { untilBlock } from "./navigation";
 
 /** Project, size, how far along, and the big previous/next buttons. */
-export function TopBar({ onExit, panels }: { onExit: () => void; panels: Parameters<typeof PanelsMenu>[0] }) {
+export function TopBar({
+  onExit,
+  panels,
+}: {
+  onExit: () => void;
+  panels: { open: Set<PanelId>; onToggle: (id: PanelId) => void; onReset: () => void };
+}) {
   const { project, map, steps, index, step, position, next, prev, finishRepeat } = useKnit();
   const repeatEnds = untilBlock(steps, index)?.end === index;
   const done = steps.length ? (index + 1) / steps.length : 0;
@@ -48,7 +56,7 @@ export function TopBar({ onExit, panels }: { onExit: () => void; panels: Paramet
           </button>
         )}
       </div>
-      <PanelsMenu {...panels} />
+      <SettingsMenu>{(close) => <PanelsSection {...panels} close={close} />}</SettingsMenu>
     </header>
   );
 }

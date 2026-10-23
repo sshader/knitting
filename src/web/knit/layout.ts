@@ -5,45 +5,34 @@ import type { DockviewApi } from "dockview-react";
  * makes of it (moved, resized, panels hidden), remembered in this browser.
  */
 
-const KEY = "knit-layout-v1";
+// Bumped when the default layout changes, so an old saved arrangement doesn't hide the new one.
+const KEY = "knit-layout-v2";
 
 export const PANELS = {
   instructions: "Instructions",
-  steps: "Steps",
   chart: "Chart",
   pdf: "Pattern",
+  steps: "Steps",
+  glossary: "Glossary",
 } as const;
 export type PanelId = keyof typeof PANELS;
 export const PANEL_IDS = Object.keys(PANELS) as PanelId[];
 
-/** Where each panel goes when shown again: next to the first of these that's open. */
-const PLACES: Record<PanelId, { next: PanelId; direction: "left" | "right" | "above" | "below" }[]> = {
-  instructions: [
-    { next: "steps", direction: "above" },
-    { next: "chart", direction: "left" },
-    { next: "pdf", direction: "left" },
-  ],
-  steps: [
-    { next: "instructions", direction: "below" },
-    { next: "chart", direction: "left" },
-    { next: "pdf", direction: "left" },
-  ],
-  chart: [
-    { next: "pdf", direction: "above" },
-    { next: "instructions", direction: "right" },
-    { next: "steps", direction: "right" },
-  ],
-  pdf: [
-    { next: "chart", direction: "below" },
-    { next: "instructions", direction: "right" },
-    { next: "steps", direction: "right" },
-  ],
-};
+/** Everything but the instructions shares one tab group on the right. */
+const TABBED: PanelId[] = ["chart", "pdf", "steps", "glossary"];
 
 export function showPanel(api: DockviewApi, id: PanelId) {
   if (api.getPanel(id)) return;
-  const place = PLACES[id].find((p) => api.getPanel(p.next));
-  api.addPanel({ id, component: id, title: PANELS[id], ...(place ? { position: { referencePanel: place.next, direction: place.direction } } : {}) });
+  const add = (position?: { referencePanel: string; direction: "left" | "right" | "within" }) =>
+    api.addPanel({ id, component: id, title: PANELS[id], ...(position ? { position } : {}) });
+  if (id === "instructions") {
+    const right = TABBED.find((p) => api.getPanel(p));
+    return add(right ? { referencePanel: right, direction: "left" } : undefined);
+  }
+  // Rejoin the tab group, or start one to the right of the instructions.
+  const sibling = TABBED.find((p) => p !== id && api.getPanel(p));
+  if (sibling) add({ referencePanel: sibling, direction: "within" });
+  else add(api.getPanel("instructions") ? { referencePanel: "instructions", direction: "right" } : undefined);
 }
 
 export function hidePanel(api: DockviewApi, id: PanelId) {
@@ -51,15 +40,14 @@ export function hidePanel(api: DockviewApi, id: PanelId) {
   if (panel) api.removePanel(panel);
 }
 
-/** Instructions over the step outline on the left; the chart over the pattern page on the right. */
+/** The instructions on the left; the chart, the pattern page, the outline, and the glossary as tabs on the right, chart in front. */
 export function defaultLayout(api: DockviewApi) {
   api.clear();
   api.addPanel({ id: "instructions", component: "instructions", title: PANELS.instructions });
   api.addPanel({ id: "chart", component: "chart", title: PANELS.chart, position: { referencePanel: "instructions", direction: "right" } });
-  api.addPanel({ id: "pdf", component: "pdf", title: PANELS.pdf, position: { referencePanel: "chart", direction: "below" } });
-  api.addPanel({ id: "steps", component: "steps", title: PANELS.steps, position: { referencePanel: "instructions", direction: "below" } });
-  api.getPanel("instructions")?.api.group.api.setSize({ width: Math.round(api.width * 0.42), height: Math.round(api.height * 0.62) });
-  api.getPanel("chart")?.api.group.api.setSize({ height: Math.round(api.height * 0.6) });
+  for (const id of TABBED.slice(1)) api.addPanel({ id, component: id, title: PANELS[id], position: { referencePanel: "chart", direction: "within" }, inactive: true });
+  api.getPanel("chart")?.api.setActive();
+  api.getPanel("instructions")?.api.group.api.setSize({ width: Math.round(api.width * 0.42) });
 }
 
 export function restoreLayout(api: DockviewApi) {

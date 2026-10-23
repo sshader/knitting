@@ -6,6 +6,7 @@ import { KnitContext, type Knit } from "./KnitContext";
 import { defaultLayout, hidePanel, PANEL_IDS, restoreLayout, saveLayout, showPanel, type PanelId } from "./layout";
 import { MaximizeButton } from "./MaximizeButton";
 import { ChartPanel } from "./panels/ChartPanel";
+import { GlossaryPanel } from "./panels/GlossaryPanel";
 import { InstructionsPanel } from "./panels/InstructionsPanel";
 import { PdfPanel } from "./panels/PdfPanel";
 import { StepsPanel } from "./panels/StepsPanel";
@@ -21,6 +22,7 @@ const COMPONENTS: Record<string, FunctionComponent<IDockviewPanelProps>> = {
   steps: StepsPanel,
   chart: ChartPanel,
   pdf: PdfPanel,
+  glossary: GlossaryPanel,
 };
 
 /** Knitting a project: the top bar, and the panels in a layout the knitter can rearrange. */

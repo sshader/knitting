@@ -12,7 +12,7 @@
 .knit {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 32px);
+  height: 100vh;
   background: var(--bg);
 }
 
@@ -88,43 +88,6 @@ button.quiet:hover {
   color: var(--text);
 }
 
-/* Panels menu */
-.panels-menu {
-  position: relative;
-}
-.panels-popover {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 1000;
-  min-width: 170px;
-  padding: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-.panels-popover label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 6px;
-  font-size: 14px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.panels-popover label:hover {
-  background: var(--bg);
-}
-.panels-popover hr {
-  border: none;
-  border-top: 1px solid var(--line);
-  margin: 6px 0;
-}
-.panels-popover button {
-  width: 100%;
-  text-align: left;
-}
 .knit-dock button.maximize {
   margin: 0 8px;
   padding: 2px 6px;
@@ -558,11 +521,62 @@ button.quiet:hover {
   min-height: 0;
 }
 .chart-scroll {
-  padding: 8px;
+  padding: 8px 0 0 8px;
+}
+/* The drawing, with row numbers to its right and column numbers below, both pinned in view. */
+.chart-canvas {
+  display: grid;
+  width: max-content;
+  margin: 0 auto;
+}
+.row-axis,
+.col-axis,
+.axis-corner {
+  position: sticky;
+  background: var(--panel);
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.row-axis {
+  right: 0;
+  z-index: 1;
+  border-left: 1px solid var(--line);
+}
+.row-axis > span {
+  position: absolute;
+  left: 6px;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+.row-axis .current {
+  color: var(--text);
+  font-weight: 700;
+}
+.row-axis .direction {
+  margin-left: 3px;
+  color: var(--current-row);
+  font-weight: 700;
+}
+.col-axis {
+  bottom: 0;
+  z-index: 1;
+  border-top: 1px solid var(--line);
+}
+.col-axis > span {
+  position: absolute;
+  top: 3px;
+  transform: translateX(-50%);
+}
+.axis-corner {
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
 }
 .knit-chart {
   display: block;
-  margin: 0 auto;
 }
 .knit-chart .chart-row {
   cursor: pointer;
@@ -594,19 +608,6 @@ button.quiet:hover {
   stroke-width: 3;
   rx: 2;
   pointer-events: none;
-}
-.knit-chart .axis-label {
-  fill: var(--muted);
-}
-.knit-chart .axis-label.current {
-  fill: var(--text);
-  font-weight: 700;
-}
-.knit-chart .direction-arrow {
-  stroke: var(--current-row);
-  stroke-width: 2;
-  fill: none;
-  stroke-linecap: round;
 }
 .knit-chart .repeat-bracket path {
   stroke: var(--muted);
@@ -705,9 +706,14 @@ button.quiet:hover {
   max-width: 720px;
   margin: 0 auto;
   padding: 32px 20px;
-  height: calc(100vh - 32px);
+  height: 100vh;
   box-sizing: border-box;
   overflow-y: auto;
+}
+.projects-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .projects h1 {
   font-family: var(--step-font);
@@ -774,4 +780,74 @@ button.quiet:hover {
   background: var(--accent);
   border-color: var(--accent);
   font-size: 14px;
+}
+
+/* Glossary */
+.glossary-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.glossary-search {
+  flex: 1;
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.glossary-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 16px 16px;
+}
+.glossary-panel h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 16px 0 6px;
+}
+.abbreviations {
+  margin: 0;
+}
+.abbreviations div {
+  display: grid;
+  grid-template-columns: minmax(70px, max-content) 1fr;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.abbreviations dt {
+  font-weight: 600;
+}
+.abbreviations dd {
+  margin: 0;
+  color: #444;
+}
+.glossary-panel details {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.glossary-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.technique-text {
+  white-space: pre-line;
+  line-height: 1.5;
+  color: #444;
+}
+.glossary-page {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 0 8px 8px;
+  border: 1px solid var(--line);
+}
+abbr[title] {
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 3px;
+  cursor: help;
 }

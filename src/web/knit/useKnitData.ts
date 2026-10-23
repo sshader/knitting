@@ -13,6 +13,7 @@ export function useKnitData(project: (Doc<"projects"> & { pattern: string }) | n
   const sections = useQuery(api.sections.forPattern, args);
   const charts = useQuery(api.charts.forPattern, args);
   const pages = useQuery(api.pages.forPattern, args);
+  const glossary = useQuery(api.glossaries.get, args);
 
   // Moving through the pattern updates the project (a new object each time);
   // key on its setup so the steps are only re-expanded when that changes.
@@ -21,7 +22,7 @@ export function useKnitData(project: (Doc<"projects"> & { pattern: string }) | n
   const choices: string[] = useMemo(() => JSON.parse(choicesKey), [choicesKey]);
 
   return useMemo(() => {
-    if (!saved || !sections || !charts || !pages) return null;
+    if (!saved || !sections || !charts || !pages || glossary === undefined) return null;
     const extractions = Object.fromEntries(sections.map((s) => [s.sectionId, s.extraction]));
     const byId: Record<string, ChartRow> = Object.fromEntries(charts.map((c) => [c.chartId, c]));
     const steps = expandPattern({
@@ -30,8 +31,8 @@ export function useKnitData(project: (Doc<"projects"> & { pattern: string }) | n
       size,
       choices,
     });
-    return { map: saved.map, steps, charts: byId, pages };
-  }, [saved, sections, charts, pages, size, choices]);
+    return { map: saved.map, steps, charts: byId, pages, glossary: glossary?.glossary ?? null };
+  }, [saved, sections, charts, pages, glossary, size, choices]);
 }
 
 export type KnitData = NonNullable<ReturnType<typeof useKnitData>>;

@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { isRS } from "../../../shared/chartRows";
 import { ChartLegend } from "../chart/ChartLegend";
-import { chartSize, KnitChart, rowCenter } from "../chart/KnitChart";
+import { AXIS, chartSize, rowCenter } from "../chart/geometry";
+import { KnitChart } from "../chart/KnitChart";
 import { useKnit } from "../KnitContext";
 import { runsForStep } from "../rowRuns";
 import { chartFocus, stepForChartRow } from "../steps";
@@ -23,7 +24,7 @@ export function ChartPanel() {
   const width = useElementWidth(scroller);
   const [zoom, setZoom] = useState<number | "fit">("fit");
 
-  const fit = c ? Math.max(0.2, Math.min(3, (width - 16) / chartSize(c.chart).width)) : 1;
+  const fit = c ? Math.max(0.2, Math.min(3, (width - 16 - AXIS.rowGutter) / chartSize(c.chart).width)) : 1;
   const scale = zoom === "fit" ? fit : zoom;
 
   // Keep the current row (or the one coming up) in the middle of the view.

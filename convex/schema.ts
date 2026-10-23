@@ -6,6 +6,7 @@ import {
   chartNaming,
   doc,
   docMap,
+  glossary,
   mapMode,
   mapReview,
   pageTriage,
@@ -87,6 +88,14 @@ export default defineSchema({
     model: v.string(),
     usage,
   }).index("by_patternId_and_chartId", ["patternId", "chartId"]),
+
+  /** Abbreviations and techniques, one row per pattern. */
+  glossaries: defineTable({
+    patternId: v.id("patterns"),
+    glossary,
+    model: v.string(),
+    usage,
+  }).index("by_patternId", ["patternId"]),
 
   /** One knit of a pattern: the size and options chosen, and where the knitter is. */
   projects: defineTable({

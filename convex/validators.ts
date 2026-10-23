@@ -2,6 +2,7 @@ import { zodToConvex } from "convex-helpers/server/zod4";
 import { v } from "convex/values";
 import { ChartNaming } from "../src/extract/chartSchema";
 import { DocMap } from "../src/extract/docMap";
+import { Glossary } from "../src/extract/glossarySchema";
 import { MapFixture, SectionsFixture } from "../src/extract/mapFixture";
 import { SectionExtraction } from "../src/extract/sectionSchema";
 import { PageTriage } from "../src/extract/triage";
@@ -17,6 +18,7 @@ export const pageTriage = zodToConvex(PageTriage);
 export const docMap = zodToConvex(DocMap);
 export const sectionExtraction = zodToConvex(SectionExtraction);
 export const chart = zodToConvex(Chart);
+export const glossary = zodToConvex(Glossary);
 /** The model's naming of one chart's cell types. */
 export const chartNaming = zodToConvex(ChartNaming.shape.charts.element);
 

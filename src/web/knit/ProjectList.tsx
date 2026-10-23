@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { SettingsMenu } from "../SettingsMenu";
 import { NewProject } from "./NewProject";
 
 /** Your projects, most recent first, and a form to start another. */
@@ -10,7 +11,10 @@ export function ProjectList({ onOpen }: { onOpen: (id: Id<"projects">) => void }
   return (
     <div className="projects">
       <section>
-        <h1>Knitting</h1>
+        <header className="projects-head">
+          <h1>Knitting</h1>
+          <SettingsMenu />
+        </header>
         {projects?.length === 0 && <p className="muted">No projects yet. Start one below.</p>}
         <ul className="project-cards">
           {projects?.map((p) => (

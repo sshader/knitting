@@ -1,25 +1,28 @@
-import { useAuthActions } from "@convex-dev/auth/react";
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import { useState } from "react";
-import { KnitView } from "./knit/KnitView";
 import { ChartsInspector } from "./inspector/charts/ChartsInspector";
 import { MapInspector } from "./inspector/map/MapInspector";
 import { SectionsInspector } from "./inspector/sections/SectionsInspector";
 import { StepsPreview } from "./inspector/steps/StepsPreview";
 import { TriageInspector } from "./inspector/triage/TriageInspector";
+import { KnitView } from "./knit/KnitView";
+import { ModeContext, type Mode } from "./mode";
+import { SettingsMenu } from "./SettingsMenu";
 import { SignIn } from "./SignIn";
 
-const VIEWS = {
-  knit: { label: "Knit", Component: KnitView },
+/** The inspector's stages, shown in pattern extraction mode. */
+const STAGES = {
   triage: { label: "0 · Triage", Component: TriageInspector },
   map: { label: "1 · Document map", Component: MapInspector },
   sections: { label: "2 · Sections", Component: SectionsInspector },
   charts: { label: "3 · Charts", Component: ChartsInspector },
   steps: { label: "Steps preview", Component: StepsPreview },
 };
-type View = keyof typeof VIEWS;
+type Stage = keyof typeof STAGES;
+/** ?view=knit, or one of the stages. */
+type View = "knit" | Stage;
 
-const isView = (v: string | null): v is View => v !== null && v in VIEWS;
+const isView = (v: string | null): v is View => v === "knit" || (v !== null && v in STAGES);
 
 export function App() {
   return (
@@ -31,14 +34,13 @@ export function App() {
         <SignIn />
       </Unauthenticated>
       <Authenticated>
-        <Inspector />
+        <SignedIn />
       </Authenticated>
     </>
   );
 }
 
-function Inspector() {
-  const { signOut } = useAuthActions();
+function SignedIn() {
   const [view, setView] = useState<View>(() => {
     const v = new URLSearchParams(location.search).get("view");
     return isView(v) ? v : "knit";
@@ -49,18 +51,29 @@ function Inspector() {
     history.replaceState(null, "", `?${params}`);
     setView(v);
   };
-  const { Component } = VIEWS[view];
+  const mode: Mode = view === "knit" ? "knit" : "extract";
+  const setMode = (m: Mode) => go(m === "knit" ? "knit" : "triage");
+
+  return (
+    <ModeContext.Provider value={{ mode, setMode }}>
+      {view === "knit" ? <KnitView /> : <Extraction stage={view} onStage={go} />}
+    </ModeContext.Provider>
+  );
+}
+
+function Extraction({ stage, onStage }: { stage: Stage; onStage: (s: Stage) => void }) {
+  const { Component } = STAGES[stage];
   return (
     <>
       <nav className="tabs">
-        {(Object.keys(VIEWS) as View[]).map((v) => (
-          <button key={v} className={view === v ? "on" : ""} onClick={() => go(v)}>
-            {VIEWS[v].label}
+        {(Object.keys(STAGES) as Stage[]).map((s) => (
+          <button key={s} className={stage === s ? "on" : ""} onClick={() => onStage(s)}>
+            {STAGES[s].label}
           </button>
         ))}
-        <button className="sign-out" onClick={() => void signOut()}>
-          Sign out
-        </button>
+        <span className="tabs-end">
+          <SettingsMenu />
+        </span>
       </nav>
       <Component />
     </>

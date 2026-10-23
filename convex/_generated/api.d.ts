@@ -12,6 +12,7 @@ import type * as access from "../access.js";
 import type * as auth from "../auth.js";
 import type * as charts from "../charts.js";
 import type * as files from "../files.js";
+import type * as glossaries from "../glossaries.js";
 import type * as http from "../http.js";
 import type * as maps from "../maps.js";
 import type * as pages from "../pages.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   charts: typeof charts;
   files: typeof files;
+  glossaries: typeof glossaries;
   http: typeof http;
   maps: typeof maps;
   pages: typeof pages;

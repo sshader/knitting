@@ -774,7 +774,7 @@ ul.items {
 }
 
 /* Sign in */
-.tabs .sign-out {
+.tabs-end {
   margin-left: auto;
 }
 .centered {
@@ -805,4 +805,69 @@ button.link {
   background: none;
   color: var(--muted);
   text-decoration: underline;
+}
+
+/* Dropdown menus (settings) */
+.dropdown {
+  position: relative;
+}
+.dropdown-button {
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+}
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 1000;
+  min-width: 230px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.dropdown-menu hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 6px 0;
+}
+.menu-heading {
+  padding: 4px 8px 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+button.menu-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+.menu-item:hover {
+  background: var(--bg);
+}
+.menu-item.on {
+  background: #fdf1e3;
+  font-weight: 600;
+}
+.menu-hint {
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--muted);
 }

@@ -9,7 +9,7 @@ inspector (a Vite + React app) reads them live and records reviews.
 - `npm install`, and a Python venv at `.venv` with PyMuPDF (for `scripts/*.py`).
 - `npx convex dev` keeps the backend deployed while you work (it writes `VITE_CONVEX_URL` to `.env.local`).
 - `.env` holds `ANTHROPIC_API_KEY` and the login the scripts use, `KNITTING_EMAIL` / `KNITTING_PASSWORD`. Create that account on the inspector's sign-in page (or it already exists).
-- `npm run dev` starts the inspector at http://localhost:5173.
+- `npm run dev` starts the app at http://localhost:5173. It opens in knit mode (your projects); the ⚙ menu switches to pattern extraction mode, the pipeline inspector.
 
 ## Pipeline
 
@@ -22,6 +22,7 @@ Each stage reads the previous one's output from Convex and saves its own there.
 | 1 · Map | `npx tsx scripts/map.ts <pattern...>` | maps |
 | 2 · Sections | `npx tsx scripts/sections.ts <pattern> [sectionId...]` | sections |
 | 3 · Charts | `npx tsx scripts/charts.ts <pattern> [chartId...]` | charts (+ chart images) |
+| Glossary | `npx tsx scripts/glossary.ts <pattern...>` | glossaries (abbreviations, techniques) |
 
 Preprocessing and chart grids run Python locally; everything else is TypeScript.
 

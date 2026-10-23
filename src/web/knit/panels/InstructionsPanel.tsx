@@ -2,6 +2,7 @@ import type { ExpandedStep } from "../../../shared/expand";
 import { useKnit } from "../KnitContext";
 import * as nav from "../navigation";
 import { runsForStep } from "../rowRuns";
+import { GlossaryText } from "./GlossaryText";
 import { RepeatUntil } from "./RepeatUntil";
 import { RowRunsView } from "./RowRunsView";
 
@@ -35,11 +36,15 @@ export function InstructionsPanel() {
             <RowRunsView runs={row.runs} layout={row.layout} mark={position.mark} chart={chart} onMark={setMark} />
           </div>
         )}
-        {step.instruction && <div className={row ? "step-context" : "step-primary"}>{step.instruction}</div>}
+        {step.instruction && (
+          <div className={row ? "step-context" : "step-primary"}>
+            <GlossaryText text={step.instruction} />
+          </div>
+        )}
 
         {step.also?.map((a) => (
           <div key={a} className="step-also">
-            <span className="step-also-tag">At the same time</span> {a}
+            <span className="step-also-tag">At the same time</span> <GlossaryText text={a} />
           </div>
         ))}
 
@@ -55,7 +60,7 @@ export function InstructionsPanel() {
         {step.related?.map((r, k) => (
           <details key={k} className="step-related" open>
             <summary>{r.title}</summary>
-            {r.text}
+            <GlossaryText text={r.text} />
           </details>
         ))}
       </div>
