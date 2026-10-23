@@ -1,14 +1,15 @@
 # Hosting and mobile
 
 Hosting: the frontend on Vercel, the backend on a Convex production
-deployment. Users: you and a few invited friends (`ALLOWED_EMAILS`).
+deployment. Users: you and a few friends, who sign up with an invite code.
 Devices: phone and laptop.
 
 ## Deploying
 
 Done in code:
-- Sign-up and sign-in are limited to `ALLOWED_EMAILS`, a required env var,
-  so a deployment without it fails to push rather than being open.
+- Signing up needs `INVITE_CODE`, a required env var (so a deployment
+  without it fails to push rather than being open), and stops at
+  `MAX_USERS` accounts (default 10), so a leaked code can't run up usage.
 - Uploads go through an authenticated `POST /upload` that records the
   uploader; saves only attach the caller's own files.
 - `vercel.json` builds with `npx convex deploy --cmd 'npm run build'`, which
@@ -21,7 +22,7 @@ One-time setup:
    - `JWT_PRIVATE_KEY` and `JWKS`: new keys, generated as for dev (see the
      convex-auth skill; don't reuse dev's)
    - `SITE_URL`: the Vercel URL, e.g. `https://knitting.vercel.app`
-   - `ALLOWED_EMAILS`: comma-separated, yours and your friends'
+   - `INVITE_CODE`: what friends enter to sign up; `MAX_USERS` if not 10
 2. **Deploy key**: Convex dashboard, production deployment, Settings,
    "Generate production deploy key".
 3. **Vercel**: push this repo to GitHub and import it in Vercel (or run
