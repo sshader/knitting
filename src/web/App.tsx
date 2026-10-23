@@ -1,14 +1,16 @@
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
-import { useState } from "react";
-import { ChartsInspector } from "./inspector/charts/ChartsInspector";
-import { MapInspector } from "./inspector/map/MapInspector";
-import { SectionsInspector } from "./inspector/sections/SectionsInspector";
-import { StepsPreview } from "./inspector/steps/StepsPreview";
-import { TriageInspector } from "./inspector/triage/TriageInspector";
+import { lazy, Suspense, useState } from "react";
 import { KnitView } from "./knit/KnitView";
 import { ModeContext, type Mode } from "./mode";
 import { SettingsMenu } from "./SettingsMenu";
 import { SignIn } from "./SignIn";
+
+// Pattern extraction mode is loaded only when it's opened, so knitting (on a phone especially) doesn't download it.
+const TriageInspector = lazy(() => import("./inspector/triage/TriageInspector").then((m) => ({ default: m.TriageInspector })));
+const MapInspector = lazy(() => import("./inspector/map/MapInspector").then((m) => ({ default: m.MapInspector })));
+const SectionsInspector = lazy(() => import("./inspector/sections/SectionsInspector").then((m) => ({ default: m.SectionsInspector })));
+const ChartsInspector = lazy(() => import("./inspector/charts/ChartsInspector").then((m) => ({ default: m.ChartsInspector })));
+const StepsPreview = lazy(() => import("./inspector/steps/StepsPreview").then((m) => ({ default: m.StepsPreview })));
 
 /** The inspector's stages, shown in pattern extraction mode. */
 const STAGES = {
@@ -75,7 +77,9 @@ function Extraction({ stage, onStage }: { stage: Stage; onStage: (s: Stage) => v
           <SettingsMenu />
         </span>
       </nav>
-      <Component />
+      <Suspense fallback={<p className="muted centered">Loading…</p>}>
+        <Component />
+      </Suspense>
     </>
   );
 }

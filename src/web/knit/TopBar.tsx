@@ -1,10 +1,11 @@
-import { useKnit } from "./KnitContext";
 import { SettingsMenu } from "../SettingsMenu";
+import { useKnit } from "./KnitContext";
 import type { PanelId } from "./layout";
 import { PanelsSection } from "./PanelsSection";
-import { untilBlock } from "./navigation";
+import { StepButtons } from "./StepButtons";
+import { setupLabel } from "./setupLabel";
 
-/** Project, size, how far along, and the big previous/next buttons. */
+/** Laptop: project, size, how far along, the step buttons, and settings. */
 export function TopBar({
   onExit,
   panels,
@@ -12,11 +13,8 @@ export function TopBar({
   onExit: () => void;
   panels: { open: Set<PanelId>; onToggle: (id: PanelId) => void; onReset: () => void };
 }) {
-  const { project, map, steps, index, step, position, next, prev, finishRepeat } = useKnit();
-  const repeatEnds = untilBlock(steps, index)?.end === index;
+  const { project, map, steps, index, step } = useKnit();
   const done = steps.length ? (index + 1) / steps.length : 0;
-  const size = map.sizes[project.size];
-  const setup = [/size/i.test(size) ? size : `Size ${size}`, ...project.choices].join(" · ");
   return (
     <header className="knit-bar">
       <button className="quiet" onClick={onExit}>
@@ -24,7 +22,7 @@ export function TopBar({
       </button>
       <div className="knit-title">
         <b>{project.name}</b>
-        <span className="muted">{setup}</span>
+        <span className="muted">{setupLabel(map, project)}</span>
       </div>
       <div className="knit-progress" title={`${Math.round(done * 100)}% through the pattern`}>
         <div className="knit-progress-text">
@@ -37,25 +35,7 @@ export function TopBar({
           <div style={{ width: `${done * 100}%` }} />
         </div>
       </div>
-      <div className="knit-nav">
-        <button onClick={prev} disabled={index === 0 && !position.pass} title="Previous (← or k)">
-          ←
-        </button>
-        {repeatEnds ? (
-          <>
-            <button className="primary" onClick={next} title="Work the repeat again (→, j, or space)">
-              ↺ Again
-            </button>
-            <button onClick={finishRepeat} title="It measures enough: go on">
-              Done →
-            </button>
-          </>
-        ) : (
-          <button className="primary" onClick={next} disabled={index >= steps.length - 1} title="Next (→, j, or space)">
-            Next →
-          </button>
-        )}
-      </div>
+      <StepButtons />
       <SettingsMenu>{(close) => <PanelsSection {...panels} close={close} />}</SettingsMenu>
     </header>
   );

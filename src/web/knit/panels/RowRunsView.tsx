@@ -61,7 +61,7 @@ export function RowRunsView({
         </span>
       )}
       {part("after")}
-      {!mark && <div className="run-hint">Tap where you are, or press . and , to step through the row</div>}
+      {!mark && <div className="run-hint">{matchMedia("(hover: none)").matches ? "Tap where you are in the row" : "Tap where you are, or press . and , to step through the row"}</div>}
     </div>
   );
 }

@@ -26,6 +26,12 @@ Each stage reads the previous one's output from Convex and saves its own there.
 
 Preprocessing and chart grids run Python locally; everything else is TypeScript.
 
+## Hosting
+
+The app deploys to Vercel with a Convex production backend; on phones it can
+be added to the home screen. See [docs/hosting-and-mobile.md](docs/hosting-and-mobile.md)
+for the setup and the list of mobile ideas.
+
 ## Tests
 
 `npm test`. Tests that need real patterns skip unless the local data is there:

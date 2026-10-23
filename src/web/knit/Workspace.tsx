@@ -1,43 +1,22 @@
-import { DockviewReact, themeLightSpaced, type DockviewApi, type IDockviewPanelProps } from "dockview-react";
-import "dockview-react/dist/styles/dockview.css";
-import { useMemo, useRef, useState, type FunctionComponent } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { KnitContext, type Knit } from "./KnitContext";
-import { defaultLayout, hidePanel, PANEL_IDS, restoreLayout, saveLayout, showPanel, type PanelId } from "./layout";
-import { MaximizeButton } from "./MaximizeButton";
-import { ChartPanel } from "./panels/ChartPanel";
-import { GlossaryPanel } from "./panels/GlossaryPanel";
-import { InstructionsPanel } from "./panels/InstructionsPanel";
-import { PdfPanel } from "./panels/PdfPanel";
-import { StepsPanel } from "./panels/StepsPanel";
 import * as nav from "./navigation";
+import { PhoneLayout } from "./PhoneLayout";
 import { resolveStep } from "./steps";
-import { TopBar } from "./TopBar";
+import { useIsPhone } from "./useIsPhone";
 import { useKnitData } from "./useKnitData";
 import { useProject } from "./useProject";
 import { useStepKeys } from "./useStepKeys";
+import { useWakeLock } from "./useWakeLock";
 
-const COMPONENTS: Record<string, FunctionComponent<IDockviewPanelProps>> = {
-  instructions: InstructionsPanel,
-  steps: StepsPanel,
-  chart: ChartPanel,
-  pdf: PdfPanel,
-  glossary: GlossaryPanel,
-};
+// Dockview (the laptop layout) is only downloaded on screens that use it.
+const DockLayout = lazy(() => import("./DockLayout").then((m) => ({ default: m.DockLayout })));
 
-/** Knitting a project: the top bar, and the panels in a layout the knitter can rearrange. */
+/** Knitting a project: where you are and how to move, shown as panels (laptop) or one panel at a time (phone). */
 export function Workspace({ projectId, onExit }: { projectId: Id<"projects">; onExit: () => void }) {
   const { project, move } = useProject(projectId);
   const data = useKnitData(project);
-  const dock = useRef<DockviewApi | null>(null);
-  const [open, setOpen] = useState(new Set<PanelId>());
-  const togglePanel = (id: PanelId) => {
-    const api = dock.current;
-    if (!api) return;
-    if (open.has(id)) hidePanel(api, id);
-    else showPanel(api, id);
-  };
-
   const knit: Knit | null = useMemo(() => {
     if (!project || !data) return null;
     const { steps } = data;
@@ -58,39 +37,21 @@ export function Workspace({ projectId, onExit }: { projectId: Id<"projects">; on
     };
   }, [project, data, move]);
   useStepKeys(knit);
+  useWakeLock();
+  const phone = useIsPhone();
 
   if (project === null) return <div className="panel-empty">This project doesn't exist any more.</div>;
   if (!knit) return <div className="panel-empty">Loading…</div>;
 
   return (
     <KnitContext.Provider value={knit}>
-      <div className="knit">
-        <TopBar
-          onExit={onExit}
-          panels={{
-            open,
-            onToggle: togglePanel,
-            onReset: () => dock.current && defaultLayout(dock.current),
-          }}
-        />
-        <DockviewReact
-          className="knit-dock"
-          theme={themeLightSpaced}
-          components={COMPONENTS}
-          rightHeaderActionsComponent={MaximizeButton}
-          disableFloatingGroups
-          onReady={({ api }) => {
-            dock.current = api;
-            restoreLayout(api);
-            const track = () => setOpen(new Set(PANEL_IDS.filter((id) => api.getPanel(id))));
-            track();
-            api.onDidLayoutChange(() => {
-              saveLayout(api);
-              track();
-            });
-          }}
-        />
-      </div>
+      {phone ? (
+        <PhoneLayout onExit={onExit} />
+      ) : (
+        <Suspense fallback={<div className="panel-empty">Loading…</div>}>
+          <DockLayout onExit={onExit} />
+        </Suspense>
+      )}
     </KnitContext.Provider>
   );
 }
