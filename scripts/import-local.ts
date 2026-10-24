@@ -13,8 +13,8 @@ import { api } from "../convex/_generated/api";
 import { DocMap } from "../src/extract/docMap";
 import { patternDocs } from "../src/extract/patterns";
 import { TriagePageExpectation } from "../src/extract/triageFixture";
-import { connect, upload, usageOf } from "./convex";
-import { MODEL } from "./llm";
+import { MODEL, usageOf } from "../src/pipeline/llm";
+import { connect, upload } from "./convex";
 
 const readJson = (file: string) => JSON.parse(fs.readFileSync(file, "utf8"));
 const jsonFiles = (dir: string) => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".json") && !f.endsWith(".failed.json") && f !== "index.json") : []);

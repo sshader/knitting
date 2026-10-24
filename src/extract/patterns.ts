@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { DocInfo } from "../pipeline/source";
 import type { PageData } from "./pageData";
 import { triagePage, type PageTriage } from "./triage";
 
@@ -26,14 +27,7 @@ export function patternDocs(): Record<string, string[]> {
   return Object.fromEntries([...singles, ...Object.entries(GROUPS)].sort(([a], [b]) => a.localeCompare(b)));
 }
 
-export interface DocInfo {
-  doc: string;
-  /** Source PDF filename. */
-  source: string;
-  pageCount: number;
-  /** Global page number of this document's first page. */
-  firstPage: number;
-}
+export type { DocInfo };
 
 export function docsFor(pattern: string): DocInfo[] {
   const docs = patternDocs()[pattern];

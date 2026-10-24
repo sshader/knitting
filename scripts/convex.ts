@@ -35,21 +35,15 @@ export async function connect(flow: "signIn" | "signUp" = "signIn"): Promise<Con
 }
 
 /** Uploads a local file to Convex storage as the signed-in user (see convex/files.ts). */
-export async function upload(_client: ConvexHttpClient, file: string, contentType: string): Promise<Id<"_storage">> {
+export const upload = (_client: ConvexHttpClient, file: string, contentType: string) => uploadBytes(new Uint8Array(fs.readFileSync(file)), contentType);
+
+export async function uploadBytes(bytes: Uint8Array, contentType: string): Promise<Id<"_storage">> {
   if (!token) throw new Error("connect() first");
   const res = await fetch(`${siteUrl}/upload`, {
     method: "POST",
     headers: { "Content-Type": contentType, Authorization: `Bearer ${token}` },
-    body: fs.readFileSync(file),
+    body: new Blob([new Uint8Array(bytes)], { type: contentType }),
   });
-  if (!res.ok) throw new Error(`upload ${file}: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`upload: ${res.status} ${await res.text()}`);
   return ((await res.json()) as { storageId: Id<"_storage"> }).storageId;
 }
-
-/** Anthropic's usage block, as stored with each result. */
-export const usageOf = (u: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null }) => ({
-  inputTokens: u.input_tokens,
-  outputTokens: u.output_tokens,
-  cacheReadTokens: u.cache_read_input_tokens ?? 0,
-  cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
-});
