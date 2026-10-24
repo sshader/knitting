@@ -9,8 +9,10 @@
  */
 
 import type * as access from "../access.js";
+import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as charts from "../charts.js";
+import type * as credits from "../credits.js";
 import type * as files from "../files.js";
 import type * as glossaries from "../glossaries.js";
 import type * as http from "../http.js";
@@ -29,8 +31,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   access: typeof access;
+  admin: typeof admin;
   auth: typeof auth;
   charts: typeof charts;
+  credits: typeof credits;
   files: typeof files;
   glossaries: typeof glossaries;
   http: typeof http;

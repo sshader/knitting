@@ -95,6 +95,21 @@ export default defineSchema({
     usage,
   }).index("by_patternId_and_chartId", ["patternId", "chartId"]),
 
+  /** What each user can spend on extraction, in micro-dollars (millionths of a dollar) of actual model cost. */
+  credits: defineTable({
+    userId: v.id("users"),
+    balance: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  /** Every grant, revocation, and charge, so a balance can always be explained. */
+  creditLedger: defineTable({
+    userId: v.id("users"),
+    /** Micro-dollars: positive for grants, negative for charges and revocations. */
+    amount: v.number(),
+    reason: v.string(),
+    patternId: v.optional(v.id("patterns")),
+  }).index("by_userId", ["userId"]),
+
   /** Abbreviations and techniques, one row per pattern. */
   glossaries: defineTable({
     patternId: v.id("patterns"),
