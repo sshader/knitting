@@ -9,3 +9,6 @@ data/
 # Editor swap files (vim wrote one for .env, with secrets in it)
 *.swp
 .*.swp
+
+# Python bytecode
+__pycache__/
