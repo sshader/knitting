@@ -7,7 +7,7 @@ import { deleteIfUnused } from "../files";
 import { glossaryRow, writeGlossary } from "../glossaries";
 import { mapRow, writeMap } from "../maps";
 import { sectionRow, writeSection } from "../sections";
-import { doc, pageTriage } from "../validators";
+import { doc, pageTriage, runOffer } from "../validators";
 import { smokeCheck } from "./checks";
 
 /**
@@ -175,7 +175,7 @@ export const setStage = internalMutation({
 export const finish = internalMutation({
   args: { patternId: v.id("patterns") },
   handler: async (ctx, { patternId }) => {
-    const problems = await smokeCheck(ctx, patternId);
+    const problems = await smokeCheck(ctx, patternId, (await ctx.db.get("patterns", patternId))?.run?.size);
     await patchRun(ctx, patternId, (run) => {
       const all = [...run.problems, ...problems];
       return { stage: "done", problems: all, status: all.length ? "review" : "ready" };
@@ -183,11 +183,37 @@ export const finish = internalMutation({
   },
 });
 
-export const OUT_OF_CREDITS = "Out of credits";
+/** Above this, a run waits for the owner to accept the estimate before extracting sections. */
+const CONFIRM_ABOVE = 1_000_000;
 
-/** The run stopped: out of credits (resumable once topped up) or failed. */
+/**
+ * After the map: what the rest would cost. The run waits for the owner when
+ * there's a size to choose, the estimate is over CONFIRM_ABOVE, or it's more
+ * than they have; returns whether it waits. The map's problems are recorded
+ * here when it does, since the sections stage starts later.
+ */
+export const offer = internalMutation({
+  args: { patternId: v.id("patterns"), offer: runOffer, problems: v.array(v.string()) },
+  handler: async (ctx, { patternId, offer, problems }) => {
+    const p = await ctx.db.get("patterns", patternId);
+    if (!p) throw new Error("pattern is gone");
+    const balance = await balanceOf(ctx, p.ownerId);
+    const wait = offer.sizes.length > 0 || offer.estimate > CONFIRM_ABOVE || offer.estimate > balance;
+    if (wait) await patchRun(ctx, patternId, (run) => ({ status: "waiting", stage: "offer", offer, problems: [...run.problems, ...problems] }));
+    return wait;
+  },
+});
+
+export const OUT_OF_CREDITS = "Out of credits";
+export const CANCELED = "Canceled";
+
+/** The run stopped: out of credits (resumable once topped up), canceled by the owner, or failed. */
 export const stop = internalMutation({
   args: { patternId: v.id("patterns"), error: v.string() },
   handler: async (ctx, { patternId, error }) =>
-    patchRun(ctx, patternId, () => ({ status: error.includes(OUT_OF_CREDITS) ? "outOfCredits" : "failed", error })),
+    patchRun(ctx, patternId, () =>
+      error === CANCELED
+        ? { status: "canceled", error: undefined, offer: undefined }
+        : { status: error.includes(OUT_OF_CREDITS) ? "outOfCredits" : "failed", error, offer: undefined },
+    ),
 });

@@ -1,14 +1,16 @@
 import type { Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { sectionsForSize } from "../../src/extract/docMap";
 import { sectionTrees } from "../../src/extract/snapshot";
 import { expandPattern } from "../../src/shared/expand";
 
 /**
  * The checks after the last stage: whatever the earlier stages' own checks
- * found, can the pattern be knitted? Expands it for the first size and the
- * default options and looks for steps and sections that didn't come out.
+ * found, can the pattern be knitted? Expands it for the size extracted (or
+ * the first) and the default options and looks for steps and sections that
+ * didn't come out.
  */
-export async function smokeCheck(ctx: QueryCtx, patternId: Id<"patterns">): Promise<string[]> {
+export async function smokeCheck(ctx: QueryCtx, patternId: Id<"patterns">, size: number | undefined): Promise<string[]> {
   const map = (
     await ctx.db
       .query("maps")
@@ -26,12 +28,13 @@ export async function smokeCheck(ctx: QueryCtx, patternId: Id<"patterns">): Prom
     .take(100);
 
   const problems: string[] = [];
-  const failed = map.sections.filter((s) => !sections.find((r) => r.sectionId === s.id)?.extraction);
-  if (failed.length) problems.push(`${failed.length} of ${map.sections.length} sections didn't extract: ${failed.map((s) => s.title).join(", ")}`);
+  const wanted = size === undefined ? map.sections : sectionsForSize(map, size);
+  const failed = wanted.filter((s) => !sections.find((r) => r.sectionId === s.id)?.extraction);
+  if (failed.length) problems.push(`${failed.length} of ${wanted.length} sections didn't extract: ${failed.map((s) => s.title).join(", ")}`);
   const steps = expandPattern({
     sections: sectionTrees(map, Object.fromEntries(sections.map((r) => [r.sectionId, r.extraction]))),
     charts: Object.fromEntries(charts.map((c) => [c.chartId, c.chart])),
-    size: 0,
+    size: size ?? 0,
     choices: map.options.map((o) => o.choices[0]),
   });
   if (steps.length === 0) problems.push("the pattern expands to no steps");

@@ -51,6 +51,12 @@ export const DocMap = z.object({
       pages: z.array(z.number().int()),
       /** Option choices this section applies to ("Tank"); [] = always. */
       choices: z.array(z.string()),
+      /**
+       * Size indices this section is for, when the pattern writes its
+       * instructions out separately per size; [] or omitted (maps made before
+       * this field) = every size.
+       */
+      sizes: z.array(z.number().int()).optional(),
       /** "make 2" etc.; "" if worked once. */
       repeat: z.string(),
       chartIds: z.array(z.string()),
@@ -77,3 +83,9 @@ export const DocMap = z.object({
   reviewNotes: z.array(z.string()),
 });
 export type DocMap = z.infer<typeof DocMap>;
+
+/** Whether the pattern writes its instructions out separately for each size. */
+export const writtenPerSize = (map: DocMap) => map.sections.some((s) => s.sizes?.length);
+
+/** The sections a knitter of one size works: their size's, and those for every size. */
+export const sectionsForSize = (map: DocMap, size: number) => map.sections.filter((s) => !s.sizes?.length || s.sizes.includes(size));

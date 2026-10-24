@@ -27,6 +27,7 @@ Sections
 - The top-level parts the knitter works, in knitting order (e.g. Neckband, Yoke, Body, Sleeves, Finishing). Prefer the pattern's own headings. Not too fine: a section is roughly a heading-level part, not a single row.
 - startPage and startQuote: where the section's text begins, as the page and its first 3-8 words copied exactly from the text (usually the heading). The section is taken to run until the next section's start, so get these exact; omit color markup like [A:...] from quotes.
 - pages: every page holding that section's instructions, including continuation pages. Don't include chart pages here; reference charts by id instead.
+- sizes: when the pattern writes its instructions out separately for each size (a full block per size, e.g. "Size 1: Cast on ..." then "Size 2: Cast on ..."), give each size's sections the size indices (0-based, into sizes) they are for; [] for sections every size works. Don't use this for size-dependent values in shared text like "84 (88) 96 sts".
 - choices: option choices the section applies to, [] if always worked. repeat: e.g. "make 2" or "work second sleeve the same", "" otherwise.
 
 Charts
@@ -79,6 +80,7 @@ export async function checkMap(map: DocMap, source: PatternSource): Promise<stri
     const s = map.sections[i];
     if (!pos) problems.push(`section ${s.id}: start quote not found on p${s.startPage} (after the previous section): "${s.startQuote}"`);
   });
+  for (const s of map.sections) for (const i of s.sizes ?? []) if (i < 0 || i >= map.sizes.length) problems.push(`section ${s.id}: size index ${i} out of range`);
   for (const s of map.sections)
     for (const ch of s.choices) if (!map.options.some((o) => o.choices.includes(ch))) problems.push(`section ${s.id}: unknown choice ${ch}`);
   return problems;

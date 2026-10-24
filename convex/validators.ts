@@ -50,8 +50,24 @@ export const doc = v.object({
 });
 
 /** Where a pattern's extraction is: running a stage, finished, or stopped. */
+/** What the rest of a run would cost, offered after the map: per size when the pattern writes each size out separately. */
+export const runOffer = v.object({
+  /** Micro-dollars, when one size isn't chosen. */
+  estimate: v.number(),
+  sizes: v.array(v.object({ label: v.string(), estimate: v.number() })),
+});
+
 export const runState = v.object({
-  status: v.union(v.literal("running"), v.literal("ready"), v.literal("review"), v.literal("failed"), v.literal("outOfCredits")),
+  status: v.union(
+    v.literal("running"),
+    /** Paused after the map for the owner to choose a size or confirm the cost (see `offer`). */
+    v.literal("waiting"),
+    v.literal("ready"),
+    v.literal("review"),
+    v.literal("failed"),
+    v.literal("outOfCredits"),
+    v.literal("canceled"),
+  ),
   /** The stage running, or where it stopped. */
   stage: v.string(),
   /** What the checks after each stage found; "review" when there are any. */
@@ -61,6 +77,10 @@ export const runState = v.object({
   cost: v.number(),
   /** Set when the results were copied from an earlier extraction of the same PDFs. */
   copiedFrom: v.optional(v.id("patterns")),
+  workflowId: v.optional(v.string()),
+  offer: v.optional(runOffer),
+  /** The size extracted, for patterns written out per size. */
+  size: v.optional(v.number()),
 });
 
 /** Chart checks against the sections' stated stitch counts (see chartChecks.ts). */

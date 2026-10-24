@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { writtenPerSize } from "../../extract/docMap";
 
 /** Pick a pattern, a size, and any options, and start knitting. */
 export function NewProject({ onStarted }: { onStarted: (id: Id<"projects">) => void }) {
@@ -13,6 +14,10 @@ export function NewProject({ onStarted }: { onStarted: (id: Id<"projects">) => v
   const [choices, setChoices] = useState<Record<string, string>>({});
   const start = useMutation(api.projects.start);
   const map = saved?.map;
+  // A pattern written out per size has only the size its run extracted.
+  const extractedSize = useQuery(api.patterns.list)?.find((p) => p.slug === chosenPattern)?.run?.size;
+  const only = map && writtenPerSize(map) ? extractedSize : undefined;
+  const chosenSize = only ?? size;
 
   if (!maps?.some((m) => m.extracted)) return <p className="muted">No extracted patterns yet. Run the pipeline (see the README) first.</p>;
 
@@ -25,7 +30,7 @@ export function NewProject({ onStarted }: { onStarted: (id: Id<"projects">) => v
         const id = await start({
           pattern: chosenPattern,
           name: map.title,
-          size,
+          size: chosenSize,
           choices: map.options.map((o) => choices[o.name] ?? o.choices[0]),
         });
         onStarted(id);
@@ -53,9 +58,9 @@ export function NewProject({ onStarted }: { onStarted: (id: Id<"projects">) => v
         <>
           <label>
             <span>Size</span>
-            <select value={size} onChange={(e) => setSize(Number(e.target.value))}>
+            <select value={chosenSize} onChange={(e) => setSize(Number(e.target.value))}>
               {map.sizes.map((s, i) => (
-                <option key={i} value={i}>
+                <option key={i} value={i} disabled={only !== undefined && i !== only}>
                   {s}
                 </option>
               ))}

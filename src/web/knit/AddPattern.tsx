@@ -53,7 +53,7 @@ export function AddPattern() {
       </button>
       <p className="small muted">
         {credits == null ? "" : `You have ${dollars(credits * 1e6)} of credit. `}
-        Extracting costs what the model calls cost: about $0.50–$1.50 for a typical pattern. PDFs already extracted are free. If a pattern ships its charts as a
+        Extracting costs what the model calls cost: about $0.40 to map the pattern, then usually under $1 for the rest. If it'd be more than $1, or the pattern writes each size out separately, you'll see an estimate and choose a size before it goes on. PDFs already extracted are free. If a pattern ships its charts as a
         separate PDF, choose both.
       </p>
       {status && <p className="small">{status}</p>}

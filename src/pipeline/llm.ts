@@ -11,10 +11,16 @@ import { callCostMicros } from "../extract/pricing";
  */
 
 export const MODEL = "claude-opus-5-5";
+/** Sections are many calls each writing a lot; a cheaper model keeps a pattern's cost down. */
+export const SECTION_MODEL = "claude-sonnet-5-5";
+
+/** Models that take the API's server-side refusal fallbacks. */
+const FALLBACKS = new Set(["claude-opus-5-5", "claude-fable-5-1"]);
 
 export interface Call<T> {
   /** The parsed result, or null if the model didn't finish (see msg.stop_reason). */
   parsed: T | null;
+  model: string;
   msg: Anthropic.Beta.BetaMessage;
   seconds: number;
   /** Micro-dollars. */
@@ -33,23 +39,23 @@ export interface Usage {
 export async function structured<S extends z.ZodType>(
   client: Anthropic,
   format: S,
-  req: { system: string; content: Anthropic.Beta.BetaContentBlockParam[]; effort: "low" | "medium" | "high"; maxTokens: number },
+  req: { system: string; content: Anthropic.Beta.BetaContentBlockParam[]; effort: "low" | "medium" | "high"; maxTokens: number; model?: string },
 ): Promise<Call<z.infer<S>>> {
+  const model = req.model ?? MODEL;
   const t0 = Date.now();
   const msg = await client.beta.messages
     .stream({
-      model: MODEL,
+      model,
       max_tokens: req.maxTokens,
       thinking: { type: "adaptive" },
       output_config: { effort: req.effort, format: betaZodOutputFormat(format) },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      ...(FALLBACKS.has(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
       system: req.system,
       messages: [{ role: "user", content: req.content }],
     })
     .finalMessage();
   const parsed = msg.stop_reason === "end_turn" ? ((msg.parsed_output as z.infer<S> | null) ?? null) : null;
-  return { parsed, msg, seconds: Math.round((Date.now() - t0) / 1000), cost: callCostMicros(MODEL, msg.usage), usage: usageOf(msg.usage) };
+  return { parsed, model, msg, seconds: Math.round((Date.now() - t0) / 1000), cost: callCostMicros(model, msg.usage), usage: usageOf(msg.usage) };
 }
 
 export function usageOf(u: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null }): Usage {

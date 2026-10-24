@@ -2,7 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { locateSections } from "../extract/anchors";
 import type { DocMap } from "../extract/docMap";
 import { checkSection, SectionExtraction, toSection } from "../extract/sectionSchema";
-import { structured, type Call } from "./llm";
+import { SECTION_MODEL, structured, type Call } from "./llm";
 import { buildMapInput, loadPages, mapContext } from "./mapInput";
 import type { PatternSource } from "./source";
 
@@ -60,6 +60,7 @@ export async function extractSection(
   sectionId: string,
   prefix: Anthropic.Beta.BetaContentBlockParam[],
   client: Anthropic,
+  model = SECTION_MODEL,
 ): Promise<SectionResult> {
   const i = map.sections.findIndex((s) => s.id === sectionId);
   if (i < 0) throw new Error(`no section ${sectionId} in the map`);
@@ -71,7 +72,7 @@ export async function extractSection(
     (next ? ` and ends where section "${next.id}" (${next.title}) starts on page ${next.startPage} at "${next.startQuote}".` : " and runs to the end of the pattern's instructions.") +
     (starts[i] ? "" : " (Its start quote could not be located automatically; use the map's page numbers.)");
 
-  const call = await structured(client, SectionExtraction, { system: SYSTEM, content: [...prefix, { type: "text", text: task }], effort: "high", maxTokens: 64000 });
+  const call = await structured(client, SectionExtraction, { system: SYSTEM, content: [...prefix, { type: "text", text: task }], effort: "high", maxTokens: 64000, model });
   const x = call.parsed;
   if (!x) return { call, problems: [], error: `stop_reason ${call.msg.stop_reason}` };
   const quoted = x.nodes.flatMap((n) => [...n.source, ...n.overlays.flatMap((o) => o.source)].map((q) => q.page));

@@ -6,11 +6,12 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { env, internalAction, type ActionCtx } from "../_generated/server";
 import { triagePage } from "../../src/extract/triage";
-import type { DocMap } from "../../src/extract/docMap";
+import { sectionsForSize, writtenPerSize, type DocMap } from "../../src/extract/docMap";
 import type { PageData } from "../../src/extract/pageData";
 import { rasterCharts, runCharts } from "../../src/pipeline/chartsStage";
 import { runGlossary } from "../../src/pipeline/glossaryStage";
-import { MODEL, type Call } from "../../src/pipeline/llm";
+import { estimateRest } from "../../src/pipeline/estimate";
+import type { Call } from "../../src/pipeline/llm";
 import { llmPageText } from "../../src/pipeline/mapInput";
 import { runMap } from "../../src/pipeline/mapStage";
 import { extractSection, sectionPrefix } from "../../src/pipeline/sectionsStage";
@@ -71,18 +72,30 @@ export const preprocess = internalAction({
   },
 });
 
+const sectionPlan = v.object({ label: v.string(), estimate: v.number(), sectionIds: v.array(v.string()) });
+type SectionPlan = typeof sectionPlan.type;
+
+/**
+ * The map, and what extracting the rest would cost: for all sections, and
+ * for each size's when the pattern writes each size out separately.
+ */
 export const map = internalAction({
   args: { patternId: v.id("patterns") },
-  returns: v.object({ problems: v.array(v.string()), sectionIds: v.array(v.string()) }),
-  handler: async (ctx, { patternId }): Promise<{ problems: string[]; sectionIds: string[] }> => {
+  returns: v.object({ problems: v.array(v.string()), all: sectionPlan, sizes: v.array(sectionPlan) }),
+  handler: async (ctx, { patternId }): Promise<{ problems: string[]; all: SectionPlan; sizes: SectionPlan[] }> => {
     await requireCredits(ctx, patternId);
     const { call, problems } = await runMap(await convexSource(ctx, patternId), client());
     await charge(ctx, patternId, call, "map");
     const map = call.parsed;
     if (!map) throw new Error(`Mapping the pattern failed (stop reason ${call.msg.stop_reason})`);
     if (!map.sections.length) throw new Error("The map found no sections to knit");
-    await ctx.runMutation(internal.pipeline.state.saveMap, { patternId, row: { mode: "text", map, problems, model: MODEL, usage: call.usage } });
-    return { problems: problems.map((p) => `map: ${p}`), sectionIds: map.sections.map((s) => s.id) };
+    await ctx.runMutation(internal.pipeline.state.saveMap, { patternId, row: { mode: "text", map, problems, model: call.model, usage: call.usage } });
+    const plan = (label: string, sections: DocMap["sections"]) => ({ label, estimate: estimateRest(map, call.usage, sections), sectionIds: sections.map((s) => s.id) });
+    return {
+      problems: problems.map((p) => `map: ${p}`),
+      all: plan("All sizes", map.sections),
+      sizes: writtenPerSize(map) ? map.sizes.map((label, i) => plan(label, sectionsForSize(map, i))) : [],
+    };
   },
 });
 
@@ -97,7 +110,7 @@ export const section = internalAction({
     await charge(ctx, patternId, call, `section ${sectionId}`);
     await ctx.runMutation(internal.pipeline.state.saveSection, {
       patternId,
-      row: { sectionId, extraction: call.parsed ?? undefined, problems, error, model: MODEL, seconds: call.seconds, usage: call.usage },
+      row: { sectionId, extraction: call.parsed ?? undefined, problems, error, model: call.model, seconds: call.seconds, usage: call.usage },
     });
     const title = map.sections.find((s) => s.id === sectionId)?.title ?? sectionId;
     // A summary per section; extraction mode lists them all.
@@ -132,7 +145,7 @@ export const charts = internalAction({
           gridBox: c.grid.gridBox,
           unassignedCells: c.unassignedCells,
           stitchCounts: c.stitchCounts,
-          model: MODEL,
+          model: result.call.model,
           usage: result.call.usage,
         },
       });
@@ -156,7 +169,7 @@ export const glossary = internalAction({
     const { call } = await runGlossary(await convexSource(ctx, patternId), map, client());
     await charge(ctx, patternId, call, "glossary");
     if (!call.parsed) return { problems: ["The glossary couldn't be read"] };
-    await ctx.runMutation(internal.pipeline.state.saveGlossary, { patternId, row: { glossary: call.parsed, model: MODEL, usage: call.usage } });
+    await ctx.runMutation(internal.pipeline.state.saveGlossary, { patternId, row: { glossary: call.parsed, model: call.model, usage: call.usage } });
     return { problems: [] };
   },
 });

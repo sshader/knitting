@@ -106,7 +106,7 @@ function toNode(n: FlatNode): Node {
 
 /** Rebuild the section tree (root from the map) and validate it against the core schema. */
 export function toSection(x: SectionExtraction, meta: DocMap["sections"][number]): Section {
-  const root: Section = { id: meta.id, kind: "section", title: meta.title, times: sized(x.times), choices: arr(meta.choices), children: [] };
+  const root: Section = { id: meta.id, kind: "section", title: meta.title, times: sized(x.times), sizes: arr(meta.sizes ?? []), choices: arr(meta.choices), children: [] };
   const built = new Map<string, Node>(x.nodes.map((n) => [n.id, toNode(n)]));
   for (const n of x.nodes) {
     const parent = n.parentId ? built.get(n.parentId) : root;

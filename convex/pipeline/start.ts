@@ -1,3 +1,4 @@
+import type { WorkflowId } from "@convex-dev/workflow";
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -7,7 +8,7 @@ import { balanceOf } from "../credits";
 import { requireUpload } from "../files";
 import type { doc } from "../validators";
 import { copyResults } from "./copy";
-import { workflow } from "./workflow";
+import { goAhead, workflow } from "./workflow";
 
 /**
  * Starting an extraction from the app: upload a pattern's PDFs, or re-run
@@ -22,7 +23,13 @@ function newRun(): NonNullable<Doc<"patterns">["run"]> {
 }
 
 async function startWorkflow(ctx: MutationCtx, patternId: Id<"patterns">, preprocess: boolean) {
-  await workflow.start(ctx, internal.pipeline.workflow.extract, { patternId, preprocess }, { onComplete: internal.pipeline.workflow.done, context: { patternId } });
+  const workflowId = await workflow.start(
+    ctx,
+    internal.pipeline.workflow.extract,
+    { patternId, preprocess },
+    { onComplete: internal.pipeline.workflow.done, context: { patternId } },
+  );
+  await ctx.db.patch("patterns", patternId, { run: { ...newRun(), workflowId } });
 }
 
 /** "Lucky Stars Beanie V5.pdf" -> "lucky-stars-beanie-v5", made unique among the owner's patterns. */
@@ -83,7 +90,7 @@ export const importPattern = mutation({
         title,
         docs: donor.docs.map((d, i) => ({ ...d, pdf: docs[i].pdf })),
         pdfKey,
-        run: { ...newRun(), status: donor.run!.status, stage: "done", problems: donor.run!.problems, copiedFrom: donor._id },
+        run: { ...newRun(), status: donor.run!.status, stage: "done", problems: donor.run!.problems, size: donor.run!.size, copiedFrom: donor._id },
       });
       await copyResults(ctx, donor._id, patternId);
       return { slug, copied: true };
@@ -101,13 +108,38 @@ export const rerun = mutation({
   args: { pattern: v.string() },
   handler: async (ctx, { pattern }) => {
     const p = await requirePattern(ctx, pattern);
-    if (p.run?.status === "running") throw new Error("Already running");
+    if (p.run?.status === "running" || p.run?.status === "waiting") throw new Error("Already running");
     if ((await balanceOf(ctx, p.ownerId)) <= 0) throw new Error("You're out of credits");
     const hasPages = !!(await ctx.db
       .query("pages")
       .withIndex("by_patternId_and_page", (q) => q.eq("patternId", p._id))
       .first());
-    await ctx.db.patch("patterns", p._id, { run: newRun() });
     await startWorkflow(ctx, p._id, !hasPages);
+  },
+});
+
+/** Go ahead with a run waiting after its map: with the size to extract, when the pattern writes each size out separately. */
+export const proceed = mutation({
+  args: { pattern: v.string(), size: v.optional(v.number()) },
+  handler: async (ctx, { pattern, size }) => {
+    const p = await requirePattern(ctx, pattern);
+    const run = p.run;
+    if (run?.status !== "waiting" || !run.workflowId || !run.offer) throw new Error("Nothing is waiting");
+    const sized = run.offer.sizes.length > 0;
+    if (sized && (size === undefined || !run.offer.sizes[size])) throw new Error("Choose a size");
+    const estimate = sized ? run.offer.sizes[size!].estimate : run.offer.estimate;
+    if ((await balanceOf(ctx, p.ownerId)) < estimate) throw new Error("That's more than your credits");
+    await workflow.sendEvent(ctx, { ...goAhead, workflowId: run.workflowId as WorkflowId, value: { size: sized ? size : undefined } });
+    await ctx.db.patch("patterns", p._id, { run: { ...run, status: "running", stage: "sections", size: sized ? size : undefined, offer: undefined } });
+  },
+});
+
+/** Stop a run, waiting or running. Calls already under way finish (and are charged); nothing new starts. */
+export const cancel = mutation({
+  args: { pattern: v.string() },
+  handler: async (ctx, { pattern }) => {
+    const p = await requirePattern(ctx, pattern);
+    if ((p.run?.status !== "running" && p.run?.status !== "waiting") || !p.run.workflowId) throw new Error("Not running");
+    await workflow.cancel(ctx, p.run.workflowId as WorkflowId);
   },
 });

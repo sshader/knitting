@@ -8,7 +8,6 @@
  */
 import { api } from "../convex/_generated/api";
 import { dollars } from "../src/extract/pricing";
-import { MODEL } from "../src/pipeline/llm";
 import { localSource } from "../src/pipeline/localSource";
 import { extractSection, sectionPrefix } from "../src/pipeline/sectionsStage";
 import { connect } from "./convex";
@@ -34,7 +33,7 @@ async function extract(sectionId: string) {
     extraction: call.parsed ?? undefined,
     problems,
     error,
-    model: MODEL,
+    model: call.model,
     seconds: call.seconds,
     usage: call.usage,
   });
