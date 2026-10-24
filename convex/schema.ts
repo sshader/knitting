@@ -11,6 +11,7 @@ import {
   mapReview,
   pageTriage,
   position,
+  runState,
   sectionExtraction,
   sectionsReview,
   stitchCountCheck,
@@ -36,10 +37,17 @@ export default defineSchema({
     ownerId: v.id("users"),
     /** The pattern's name in data/raw and on the command line: "lucky-stars-beanie-v5". */
     slug: v.string(),
+    /** The name to show, for patterns uploaded in the app (else the map's title, or the slug). */
+    title: v.optional(v.string()),
     docs: v.array(doc),
+    /** The docs' sha256s, in order: the same PDFs uploaded again reuse this pattern's results. */
+    pdfKey: v.optional(v.string()),
+    run: v.optional(runState),
     mapReview: v.optional(mapReview),
     sectionsReview: v.optional(sectionsReview),
-  }).index("by_ownerId_and_slug", ["ownerId", "slug"]),
+  })
+    .index("by_ownerId_and_slug", ["ownerId", "slug"])
+    .index("by_pdfKey", ["pdfKey"]),
 
   /** Stage 0, and the preprocessed page files every later stage and the inspector read. */
   pages: defineTable({
@@ -52,8 +60,22 @@ export default defineSchema({
     json: v.id("_storage"),
     png: v.id("_storage"),
     triage: pageTriage,
+    /** The page's text as the model reads it (see src/pipeline/mapInput.ts), saved when the page is preprocessed in Convex. */
+    markdown: v.optional(v.string()),
     triageReview: v.optional(triageReview),
-  }).index("by_patternId_and_page", ["patternId", "page"]),
+  })
+    .index("by_patternId_and_page", ["patternId", "page"])
+    // Copied patterns share files; these find whether a file is still in use before deleting it.
+    .index("by_json", ["json"])
+    .index("by_png", ["png"]),
+
+  /** Rendered page regions for the model (thumbnails, chart crops), so re-runs don't render them again. */
+  crops: defineTable({
+    patternId: v.id("patterns"),
+    /** Page, box, and size: see convex/pipeline/convexSource.ts. */
+    key: v.string(),
+    file: v.id("_storage"),
+  }).index("by_patternId_and_key", ["patternId", "key"]),
 
   /** Stage 1. */
   maps: defineTable({
@@ -93,7 +115,9 @@ export default defineSchema({
     stitchCounts: stitchCountCheck,
     model: v.string(),
     usage,
-  }).index("by_patternId_and_chartId", ["patternId", "chartId"]),
+  })
+    .index("by_patternId_and_chartId", ["patternId", "chartId"])
+    .index("by_image", ["image.file"]),
 
   /** What each user can spend on extraction, in micro-dollars (millionths of a dollar) of actual model cost. */
   credits: defineTable({

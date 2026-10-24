@@ -2,12 +2,15 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { SettingsMenu } from "../SettingsMenu";
+import { AddPattern } from "./AddPattern";
 import { NewProject } from "./NewProject";
+import { PatternStatus } from "./PatternStatus";
 
 /** Your projects, most recent first, and a form to start another. */
 export function ProjectList({ onOpen }: { onOpen: (id: Id<"projects">) => void }) {
   const projects = useQuery(api.projects.list);
   const remove = useMutation(api.projects.remove);
+  const patterns = useQuery(api.patterns.list);
   return (
     <div className="projects">
       <section>
@@ -41,6 +44,18 @@ export function ProjectList({ onOpen }: { onOpen: (id: Id<"projects">) => void }
       <section>
         <h2>Start a project</h2>
         <NewProject onStarted={onOpen} />
+      </section>
+      <section>
+        <h2>Your patterns</h2>
+        {patterns && patterns.length > 0 && (
+          <ul className="pattern-statuses">
+            {patterns.map((p) => (
+              <PatternStatus key={p.slug} p={p} />
+            ))}
+          </ul>
+        )}
+        <h3>Add a pattern</h3>
+        <AddPattern />
       </section>
     </div>
   );

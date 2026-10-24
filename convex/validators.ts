@@ -40,9 +40,27 @@ export const doc = v.object({
   doc: v.string(),
   /** Source PDF filename. */
   source: v.string(),
+  /** 0 until the PDF has been preprocessed. */
   pageCount: v.number(),
   /** Global page number of this document's first page. */
   firstPage: v.number(),
+  /** The PDF itself, for patterns uploaded in the app (or by scripts/upload-pdfs.ts). */
+  pdf: v.optional(v.id("_storage")),
+  sha256: v.optional(v.string()),
+});
+
+/** Where a pattern's extraction is: running a stage, finished, or stopped. */
+export const runState = v.object({
+  status: v.union(v.literal("running"), v.literal("ready"), v.literal("review"), v.literal("failed"), v.literal("outOfCredits")),
+  /** The stage running, or where it stopped. */
+  stage: v.string(),
+  /** What the checks after each stage found; "review" when there are any. */
+  problems: v.array(v.string()),
+  error: v.optional(v.string()),
+  /** Micro-dollars of model cost so far. */
+  cost: v.number(),
+  /** Set when the results were copied from an earlier extraction of the same PDFs. */
+  copiedFrom: v.optional(v.id("patterns")),
 });
 
 /** Chart checks against the sections' stated stitch counts (see chartChecks.ts). */

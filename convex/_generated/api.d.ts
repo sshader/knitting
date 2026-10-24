@@ -19,6 +19,14 @@ import type * as http from "../http.js";
 import type * as maps from "../maps.js";
 import type * as pages from "../pages.js";
 import type * as patterns from "../patterns.js";
+import type * as pipeline_checks from "../pipeline/checks.js";
+import type * as pipeline_convexSource from "../pipeline/convexSource.js";
+import type * as pipeline_copy from "../pipeline/copy.js";
+import type * as pipeline_pdfService from "../pipeline/pdfService.js";
+import type * as pipeline_stages from "../pipeline/stages.js";
+import type * as pipeline_start from "../pipeline/start.js";
+import type * as pipeline_state from "../pipeline/state.js";
+import type * as pipeline_workflow from "../pipeline/workflow.js";
 import type * as projects from "../projects.js";
 import type * as sections from "../sections.js";
 import type * as validators from "../validators.js";
@@ -41,6 +49,14 @@ declare const fullApi: ApiFromModules<{
   maps: typeof maps;
   pages: typeof pages;
   patterns: typeof patterns;
+  "pipeline/checks": typeof pipeline_checks;
+  "pipeline/convexSource": typeof pipeline_convexSource;
+  "pipeline/copy": typeof pipeline_copy;
+  "pipeline/pdfService": typeof pipeline_pdfService;
+  "pipeline/stages": typeof pipeline_stages;
+  "pipeline/start": typeof pipeline_start;
+  "pipeline/state": typeof pipeline_state;
+  "pipeline/workflow": typeof pipeline_workflow;
   projects: typeof projects;
   sections: typeof sections;
   validators: typeof validators;
@@ -72,4 +88,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
+};

@@ -1,4 +1,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { dollars } from "../extract/pricing";
 import type { ReactNode } from "react";
 import { Dropdown } from "./Dropdown";
 import { useMode, type Mode } from "./mode";
@@ -12,6 +15,7 @@ const MODES: { mode: Mode; label: string; hint: string }[] = [
 export function SettingsMenu({ children }: { children?: (close: () => void) => ReactNode }) {
   const { mode, setMode } = useMode();
   const { signOut } = useAuthActions();
+  const credits = useQuery(api.credits.mine);
   return (
     <Dropdown label="⚙" title="Settings">
       {(close) => (
@@ -37,6 +41,7 @@ export function SettingsMenu({ children }: { children?: (close: () => void) => R
             </>
           )}
           <hr />
+          {credits != null && <div className="menu-heading">Credits: {dollars(credits * 1e6)}</div>}
           <button className="menu-item" onClick={() => void signOut()}>
             Sign out
           </button>

@@ -1,5 +1,6 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { v, type Infer } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { findPattern, requirePattern } from "./access";
 import { glossary, usage } from "./validators";
 
@@ -16,15 +17,18 @@ export const get = query({
   },
 });
 
+export const glossaryRow = v.object({ glossary, model: v.string(), usage });
+
+export async function writeGlossary(ctx: MutationCtx, patternId: Id<"patterns">, row: Infer<typeof glossaryRow>) {
+  const existing = await ctx.db
+    .query("glossaries")
+    .withIndex("by_patternId", (q) => q.eq("patternId", patternId))
+    .unique();
+  if (existing) await ctx.db.replace("glossaries", existing._id, { patternId, ...row });
+  else await ctx.db.insert("glossaries", { patternId, ...row });
+}
+
 export const save = mutation({
-  args: { pattern: v.string(), glossary, model: v.string(), usage },
-  handler: async (ctx, { pattern, ...row }) => {
-    const p = await requirePattern(ctx, pattern);
-    const existing = await ctx.db
-      .query("glossaries")
-      .withIndex("by_patternId", (q) => q.eq("patternId", p._id))
-      .unique();
-    if (existing) await ctx.db.replace("glossaries", existing._id, { patternId: p._id, ...row });
-    else await ctx.db.insert("glossaries", { patternId: p._id, ...row });
-  },
+  args: { pattern: v.string(), ...glossaryRow.fields },
+  handler: async (ctx, { pattern, ...row }) => writeGlossary(ctx, (await requirePattern(ctx, pattern))._id, row),
 });

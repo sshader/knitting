@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { findPattern, requirePage, requirePattern } from "./access";
-import { deleteFile, requireUpload } from "./files";
+import { deleteIfUnused, requireUpload } from "./files";
 import { pageTriage, triageReview } from "./validators";
 
 const MAX_PAGES = 500;
@@ -55,11 +55,11 @@ export const save = mutation({
       await ctx.db.insert("pages", { patternId: p._id, ...page, ...files });
       return;
     }
-    if (files) {
-      await deleteFile(ctx, existing.json);
-      await deleteFile(ctx, existing.png);
-    }
     await ctx.db.patch("pages", existing._id, { ...page, ...files });
+    if (files) {
+      await deleteIfUnused(ctx, existing.json);
+      await deleteIfUnused(ctx, existing.png);
+    }
   },
 });
 

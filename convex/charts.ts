@@ -1,9 +1,9 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
-import { mutation, query, type QueryCtx } from "./_generated/server";
+import { v, type Infer } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { findPattern, requirePattern } from "./access";
-import { deleteFile, requireUpload } from "./files";
+import { deleteIfUnused, requireUpload } from "./files";
 import { chart, chartNaming, stitchCountCheck, usage } from "./validators";
 
 const MAX_PATTERNS = 200;
@@ -41,20 +41,36 @@ export const list = query({
   },
 });
 
+export const chartRow = v.object({
+  chartId: v.string(),
+  chart,
+  naming: chartNaming,
+  notes: v.array(v.string()),
+  image: v.object({ file: v.id("_storage"), page: v.number(), cropBox: v.array(v.number()) }),
+  gridBox: v.array(v.number()),
+  unassignedCells: v.number(),
+  stitchCounts: stitchCountCheck,
+  model: v.string(),
+  usage,
+});
+
+/** Saves one chart, replacing any earlier one; a replaced image is deleted unless another pattern shares it. */
+export async function writeChart(ctx: MutationCtx, patternId: Id<"patterns">, row: Infer<typeof chartRow>) {
+  const existing = await ctx.db
+    .query("charts")
+    .withIndex("by_patternId_and_chartId", (q) => q.eq("patternId", patternId).eq("chartId", row.chartId))
+    .unique();
+  if (!existing) {
+    await ctx.db.insert("charts", { patternId, ...row });
+    return;
+  }
+  await ctx.db.replace("charts", existing._id, { patternId, ...row });
+  if (existing.image.file !== row.image.file) await deleteIfUnused(ctx, existing.image.file);
+}
+
+/** From the scripts: the image must be the caller's upload. */
 export const save = mutation({
-  args: {
-    pattern: v.string(),
-    chartId: v.string(),
-    chart,
-    naming: chartNaming,
-    notes: v.array(v.string()),
-    image: v.object({ file: v.id("_storage"), page: v.number(), cropBox: v.array(v.number()) }),
-    gridBox: v.array(v.number()),
-    unassignedCells: v.number(),
-    stitchCounts: stitchCountCheck,
-    model: v.string(),
-    usage,
-  },
+  args: { pattern: v.string(), ...chartRow.fields },
   handler: async (ctx, { pattern, ...row }) => {
     const p = await requirePattern(ctx, pattern);
     const existing = await ctx.db
@@ -62,11 +78,6 @@ export const save = mutation({
       .withIndex("by_patternId_and_chartId", (q) => q.eq("patternId", p._id).eq("chartId", row.chartId))
       .unique();
     if (existing?.image.file !== row.image.file) await requireUpload(ctx, p.ownerId, row.image.file);
-    if (!existing) {
-      await ctx.db.insert("charts", { patternId: p._id, ...row });
-      return;
-    }
-    if (existing.image.file !== row.image.file) await deleteFile(ctx, existing.image.file);
-    await ctx.db.replace("charts", existing._id, { patternId: p._id, ...row });
+    await writeChart(ctx, p._id, row);
   },
 });

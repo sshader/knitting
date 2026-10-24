@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { v, type Infer } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { findPattern, requirePattern } from "./access";
 import { docMap, mapMode, usage } from "./validators";
 
@@ -55,15 +56,19 @@ export const list = query({
   },
 });
 
+export const mapRow = v.object({ mode: mapMode, map: docMap, problems: v.array(v.string()), model: v.string(), usage });
+
+/** Saves a pattern's map, replacing the one for that mode. */
+export async function writeMap(ctx: MutationCtx, patternId: Id<"patterns">, row: Infer<typeof mapRow>) {
+  const existing = await ctx.db
+    .query("maps")
+    .withIndex("by_patternId_and_mode", (q) => q.eq("patternId", patternId).eq("mode", row.mode))
+    .unique();
+  if (existing) await ctx.db.replace("maps", existing._id, { patternId, ...row });
+  else await ctx.db.insert("maps", { patternId, ...row });
+}
+
 export const save = mutation({
-  args: { pattern: v.string(), mode: mapMode, map: docMap, problems: v.array(v.string()), model: v.string(), usage },
-  handler: async (ctx, { pattern, ...row }) => {
-    const p = await requirePattern(ctx, pattern);
-    const existing = await ctx.db
-      .query("maps")
-      .withIndex("by_patternId_and_mode", (q) => q.eq("patternId", p._id).eq("mode", row.mode))
-      .unique();
-    if (existing) await ctx.db.replace("maps", existing._id, { patternId: p._id, ...row });
-    else await ctx.db.insert("maps", { patternId: p._id, ...row });
-  },
+  args: { pattern: v.string(), ...mapRow.fields },
+  handler: async (ctx, { pattern, ...row }) => writeMap(ctx, (await requirePattern(ctx, pattern))._id, row),
 });
