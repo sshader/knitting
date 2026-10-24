@@ -33,7 +33,7 @@ export async function adjust(ctx: MutationCtx, userId: Id<"users">, amount: numb
   await ctx.db.insert("creditLedger", { userId, amount, reason, patternId });
 }
 
-async function userByEmail(ctx: QueryCtx, email: string) {
+export async function userByEmail(ctx: QueryCtx, email: string) {
   const user = await ctx.db
     .query("users")
     .withIndex("email", (q) => q.eq("email", email.trim().toLowerCase()))
