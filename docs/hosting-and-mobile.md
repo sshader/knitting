@@ -6,6 +6,10 @@ Devices: phone and laptop.
 
 ## Deploying
 
+Live at https://knitting.antisarahshader.club (Vercel), backed by the Convex
+production deployment `confident-goshawk-398`. Dev is `groovy-lobster-369`.
+Set up on 2026-10-24, with dev's data imported; the steps below are how.
+
 Done in code:
 - Signing up needs `INVITE_CODE`, a required env var (so a deployment
   without it fails to push rather than being open), and stops at
