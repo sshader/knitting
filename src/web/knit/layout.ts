@@ -6,7 +6,7 @@ import type { DockviewApi } from "dockview-react";
  */
 
 // Bumped when the default layout changes, so an old saved arrangement doesn't hide the new one.
-const KEY = "knit-layout-v2";
+const KEY = "knit-layout-v3";
 
 export const PANELS = {
   instructions: "Instructions",
@@ -14,12 +14,13 @@ export const PANELS = {
   pdf: "Pattern",
   steps: "Steps",
   glossary: "Glossary",
+  notes: "Notes",
 } as const;
 export type PanelId = keyof typeof PANELS;
 export const PANEL_IDS = Object.keys(PANELS) as PanelId[];
 
 /** Everything but the instructions shares one tab group on the right. */
-const TABBED: PanelId[] = ["chart", "pdf", "steps", "glossary"];
+const TABBED: PanelId[] = ["chart", "pdf", "steps", "glossary", "notes"];
 
 export function showPanel(api: DockviewApi, id: PanelId) {
   if (api.getPanel(id)) return;
@@ -40,7 +41,7 @@ export function hidePanel(api: DockviewApi, id: PanelId) {
   if (panel) api.removePanel(panel);
 }
 
-/** The instructions on the left; the chart, the pattern page, the outline, and the glossary as tabs on the right, chart in front. */
+/** The instructions on the left; the chart, the pattern page, the outline, the glossary, and notes as tabs on the right, chart in front. */
 export function defaultLayout(api: DockviewApi) {
   api.clear();
   api.addPanel({ id: "instructions", component: "instructions", title: PANELS.instructions });

@@ -1,6 +1,7 @@
 import type { ExpandedStep } from "../../../shared/expand";
 import { useKnit } from "../KnitContext";
 import * as nav from "../navigation";
+import { StepExtras } from "../notes/StepExtras";
 import { runsForStep } from "../rowRuns";
 import { GlossaryText } from "./GlossaryText";
 import { RepeatUntil } from "./RepeatUntil";
@@ -63,6 +64,8 @@ export function InstructionsPanel() {
             <GlossaryText text={r.text} />
           </details>
         ))}
+
+        <StepExtras />
       </div>
 
       <nav className="step-neighbors">

@@ -152,4 +152,19 @@ export default defineSchema({
     position,
     lastWorkedAt: v.number(),
   }).index("by_ownerId_and_lastWorkedAt", ["ownerId", "lastWorkedAt"]),
+
+  /** Row and stitch counters the knitter adds, on a step's instruction (`node`) or the whole project (null). */
+  counters: defineTable({
+    projectId: v.id("projects"),
+    node: v.union(v.string(), v.null()),
+    label: v.string(),
+    count: v.number(),
+  }).index("by_projectId", ["projectId"]),
+
+  /** The knitter's notes: one per instruction (`node`), and one for the whole project (null). */
+  notes: defineTable({
+    projectId: v.id("projects"),
+    node: v.union(v.string(), v.null()),
+    text: v.string(),
+  }).index("by_projectId_and_node", ["projectId", "node"]),
 });

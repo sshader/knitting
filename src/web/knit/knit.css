@@ -1059,3 +1059,141 @@ abbr[title] {
   display: flex;
   gap: 8px;
 }
+
+/* Counters and notes: under the current step, and in the Notes panel. */
+.step-extras {
+  margin-top: 22px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-family: system-ui, sans-serif;
+}
+.counter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 8px;
+}
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.counter-label {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+}
+.counter-label:hover,
+.counter-label:focus {
+  border-color: var(--line);
+  background: var(--bg);
+}
+.counter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.counter-controls button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 22px;
+  line-height: 1;
+}
+.counter-controls button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.counter-count {
+  min-width: 2.2em;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.counter-menu {
+  display: flex;
+}
+.counter-menu button {
+  padding: 4px 6px;
+  font-size: 15px;
+}
+.counter-new {
+  display: flex;
+  gap: 6px;
+}
+.counter-new input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 8px;
+}
+.counter-add,
+.note-add {
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--muted);
+}
+.note-editor {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+  resize: vertical;
+}
+.notes-panel {
+  height: 100%;
+  overflow: auto;
+  padding: 12px 16px 24px;
+  box-sizing: border-box;
+}
+.notes-panel h3 {
+  margin: 18px 0 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.notes-panel section:first-child h3 {
+  margin-top: 4px;
+}
+.step-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.step-notes button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 6px;
+  text-align: left;
+  border-radius: 6px;
+}
+.step-notes .muted {
+  font-size: 12px;
+}
+.step-note-text {
+  white-space: pre-wrap;
+  font-size: 14px;
+}

@@ -59,6 +59,9 @@ export const remove = mutation({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
     await requireProject(ctx, projectId);
+    // A project has at most a few hundred of each (see counters.ts and notes.ts).
+    for await (const c of ctx.db.query("counters").withIndex("by_projectId", (q) => q.eq("projectId", projectId))) await ctx.db.delete("counters", c._id);
+    for await (const n of ctx.db.query("notes").withIndex("by_projectId_and_node", (q) => q.eq("projectId", projectId))) await ctx.db.delete("notes", n._id);
     await ctx.db.delete("projects", projectId);
   },
 });

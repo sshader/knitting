@@ -5,7 +5,7 @@ data/
 .env
 
 .env.local
-
+.agents/
 # Editor swap files (vim wrote one for .env, with secrets in it)
 *.swp
 .*.swp
