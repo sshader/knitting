@@ -1,28 +1,33 @@
 import { describe, expect, test } from "vitest";
 import type { ExpandedStep } from "../../shared/expand";
-import { finishRepeat, next, nextMark, prev, prevMark, rowsIntoRepeat, type Mark, type RowLayout } from "./navigation";
+import { finishRepeat, next, nextMark, prev, prevMark, type Mark, type Place, type RowLayout } from "./navigation";
 
 const section = { id: "body", title: "Body" };
 const step = (node: string, until?: string): ExpandedStep => ({ section, node, label: node, instruction: "", source: [], ...(until ? { until } : {}) });
 // Cast on, then rows 3-4 repeated until 30 cm, then bind off.
 const steps = [step("co"), step("r3", "until 30 cm"), step("r4", "until 30 cm"), step("bo")];
-const at = (i: number, pass?: number) => ({ step: i, node: steps[i].node, ...(pass ? { pass } : {}) });
+const at = (i: number, rows?: number): Place => ({ position: { step: i, node: steps[i].node }, repeats: rows === undefined ? [] : [{ node: "r3", rows }] });
 
 describe("open-ended repeats", () => {
-  test("next at the end of the block loops back and counts a pass", () => {
-    expect(next(steps, at(1))).toEqual(at(2));
-    expect(next(steps, at(2))).toEqual(at(1, 1));
+  test("next counts the row just worked, and at the end of the block loops back", () => {
+    expect(next(steps, at(0))).toEqual(at(1));
+    expect(next(steps, at(1))).toEqual(at(2, 1));
     expect(next(steps, at(2, 1))).toEqual(at(1, 2));
+    expect(next(steps, at(1, 2))).toEqual(at(2, 3));
   });
-  test("prev at the start of a later pass goes to the end of the one before", () => {
+  test("prev uncounts, and at the start of a later time through goes to the end of the one before", () => {
     expect(prev(steps, at(1, 2))).toEqual(at(2, 1));
-    expect(prev(steps, at(1, 1))).toEqual(at(2));
+    expect(prev(steps, at(2, 1))).toEqual(at(1, 0));
     expect(prev(steps, at(1))).toEqual(at(0));
   });
-  test("finishing leaves the block and forgets the passes", () => expect(finishRepeat(steps, at(1, 3))).toEqual(at(3)));
-  test("rows so far count every pass", () => {
-    expect(rowsIntoRepeat(steps, at(2, 2))).toBe(6);
-    expect(rowsIntoRepeat(steps, at(0))).toBeNull();
+  test("finishing counts the last row and leaves the block", () => expect(finishRepeat(steps, at(2, 5))).toEqual(at(3, 6)));
+  test("stepping out and back keeps the count", () => {
+    expect(prev(steps, at(3, 6))).toEqual(at(2, 5));
+    expect(next(steps, { position: at(0).position, repeats: [{ node: "r3", rows: 4 }] })).toEqual(at(1, 4));
+  });
+  test("nothing before the start or after the end", () => {
+    expect(prev(steps, at(0))).toBeNull();
+    expect(next(steps, at(3))).toBeNull();
   });
 });
 

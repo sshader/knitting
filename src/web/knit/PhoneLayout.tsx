@@ -23,7 +23,7 @@ const readTab = (): PanelId => {
  * sideways to move between steps.
  */
 export function PhoneLayout({ onExit }: { onExit: () => void }) {
-  const { project, steps, index, step, next, prev } = useKnit();
+  const { project, steps, index, place, step, next, prev } = useKnit();
   const [tab, setTab] = useState<PanelId>(readTab);
   const choose = (id: PanelId) => {
     setTab(id);
@@ -35,7 +35,7 @@ export function PhoneLayout({ onExit }: { onExit: () => void }) {
   };
   const swipe = useSwipe(next, prev);
   const Panel = PANEL_COMPONENTS[tab];
-  const done = steps.length ? (index + 1) / steps.length : 0;
+  const done = steps.length ? (place + 1) / steps.length : 0;
 
   return (
     <div className="knit phone">

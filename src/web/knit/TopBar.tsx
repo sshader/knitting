@@ -13,8 +13,8 @@ export function TopBar({
   onExit: () => void;
   panels: { open: Set<PanelId>; onToggle: (id: PanelId) => void; onReset: () => void };
 }) {
-  const { project, map, steps, index, step } = useKnit();
-  const done = steps.length ? (index + 1) / steps.length : 0;
+  const { project, map, steps, index, place, step } = useKnit();
+  const done = steps.length ? (place + 1) / steps.length : 0;
   return (
     <header className="knit-bar">
       <button className="quiet" onClick={onExit}>

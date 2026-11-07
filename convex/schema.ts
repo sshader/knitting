@@ -11,6 +11,7 @@ import {
   mapReview,
   pageTriage,
   position,
+  repeats,
   runState,
   sectionExtraction,
   sectionsReview,
@@ -150,6 +151,7 @@ export default defineSchema({
     size: v.number(),
     choices: v.array(v.string()),
     position,
+    repeats: v.optional(repeats),
     lastWorkedAt: v.number(),
   }).index("by_ownerId_and_lastWorkedAt", ["ownerId", "lastWorkedAt"]),
 

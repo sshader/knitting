@@ -5,15 +5,28 @@ import type { ExpandedStep } from "../../shared/expand";
  * Moving through a project. Most moves go one step at a time; two things
  * add a layer:
  * - an open-ended repeat ("repeat rounds 3-4 until it measures 30 cm") is one
- *   block of steps worked again and again, so going past its end loops back
- *   and counts a pass, until the knitter says it's done;
+ *   block of steps worked again and again, so going past its end loops back,
+ *   until the knitter says it's done. Its rows are counted as they're worked:
+ *   moving on from a row in the block counts it, moving back onto one uncounts it;
  * - within a chart row, a mark says which run of stitches ("k9 A") they're on.
  */
 
 export type Position = Doc<"projects">["position"];
+export type Repeats = NonNullable<Doc<"projects">["repeats"]>;
+
+/** Where the knitter is, and the rows they've counted in each open-ended repeat. */
+export interface Place {
+  position: Position;
+  repeats: Repeats;
+}
+
+interface Block {
+  start: number;
+  end: number;
+}
 
 /** The open-ended repeat step `i` is in: its first and last step. */
-export function untilBlock(steps: ExpandedStep[], i: number): { start: number; end: number } | null {
+export function untilBlock(steps: ExpandedStep[], i: number): Block | null {
   const until = steps[i]?.until;
   if (!until) return null;
   const same = (j: number) => steps[j]?.until === until && steps[j].section.id === steps[i].section.id;
@@ -24,39 +37,54 @@ export function untilBlock(steps: ExpandedStep[], i: number): { start: number; e
   return { start, end };
 }
 
-/** A step to land on, keeping the pass count only while still inside the same repeat. */
-export function moveTo(steps: ExpandedStep[], from: Position, i: number): Position {
-  const step = Math.min(Math.max(0, i), steps.length - 1);
-  const block = untilBlock(steps, from.step);
-  const stays = block && step >= block.start && step <= block.end;
-  return { step, node: steps[step]?.node ?? "", ...(stays && from.pass ? { pass: from.pass } : {}) };
+/** Rows worked so far in a repeat. */
+export function rowsIn(steps: ExpandedStep[], repeats: Repeats, block: Block): number {
+  const node = steps[block.start].node;
+  return repeats.find((r) => r.node === node)?.rows ?? 0;
 }
 
-/** The next step; at the end of an open-ended repeat, its start again, one pass on. */
-export function next(steps: ExpandedStep[], from: Position): Position {
-  const block = untilBlock(steps, from.step);
-  if (block && from.step === block.end) return { step: block.start, node: steps[block.start].node, pass: (from.pass ?? 0) + 1 };
-  return moveTo(steps, from, from.step + 1);
+/** The repeats with a block's row count changed by `by` (never below zero). */
+export function countRows(steps: ExpandedStep[], repeats: Repeats, block: Block, by: number): Repeats {
+  const node = steps[block.start].node;
+  const rows = Math.max(0, rowsIn(steps, repeats, block) + by);
+  return [...repeats.filter((r) => r.node !== node), { node, rows }];
 }
 
-/** The previous step; at the start of a repeat's later pass, the end of the pass before. */
-export function prev(steps: ExpandedStep[], from: Position): Position {
-  const block = untilBlock(steps, from.step);
-  if (block && from.step === block.start && from.pass) return { step: block.end, node: steps[block.end].node, pass: from.pass - 1 || undefined };
-  return moveTo(steps, from, from.step - 1);
+const at = (steps: ExpandedStep[], i: number): Position => ({ step: i, node: steps[i]?.node ?? "" });
+
+/** A step to land on (from the outline, or after reading ahead), leaving the counts alone. */
+export function moveTo(steps: ExpandedStep[], from: Place, i: number): Place {
+  return { position: at(steps, Math.min(Math.max(0, i), steps.length - 1)), repeats: from.repeats };
 }
 
-/** Leave an open-ended repeat: it measures enough. */
-export function finishRepeat(steps: ExpandedStep[], from: Position): Position {
-  const block = untilBlock(steps, from.step);
-  return moveTo(steps, { step: from.step, node: from.node }, (block?.end ?? from.step) + 1);
+/** The next step, counting the row just worked if it's in a repeat; at a repeat's end, its start again. Null at the end of the pattern. */
+export function next(steps: ExpandedStep[], from: Place): Place | null {
+  const i = from.position.step;
+  const block = untilBlock(steps, i);
+  if (block) return { position: at(steps, i === block.end ? block.start : i + 1), repeats: countRows(steps, from.repeats, block, 1) };
+  return i < steps.length - 1 ? moveTo(steps, from, i + 1) : null;
 }
 
-/** Rows worked so far in the current open-ended repeat, counting this one. */
-export function rowsIntoRepeat(steps: ExpandedStep[], at: Position): number | null {
-  const block = untilBlock(steps, at.step);
-  if (!block) return null;
-  return (at.pass ?? 0) * (block.end - block.start + 1) + (at.step - block.start) + 1;
+/**
+ * The previous step, uncounting it if it's in a repeat; at a repeat's start
+ * with a whole time through counted, the end of the time before. Null at the
+ * start of the pattern.
+ */
+export function prev(steps: ExpandedStep[], from: Place): Place | null {
+  const i = from.position.step;
+  const block = untilBlock(steps, i);
+  const loops = block && i === block.start && rowsIn(steps, from.repeats, block) >= block.end - block.start + 1;
+  const to = loops ? block.end : i - 1;
+  if (to < 0) return null;
+  const into = untilBlock(steps, to);
+  return { position: at(steps, to), repeats: into ? countRows(steps, from.repeats, into, -1) : from.repeats };
+}
+
+/** Leave an open-ended repeat, counting the row just worked: it measures enough. */
+export function finishRepeat(steps: ExpandedStep[], from: Place): Place {
+  const block = untilBlock(steps, from.position.step);
+  if (!block) return moveTo(steps, from, from.position.step + 1);
+  return moveTo(steps, { ...from, repeats: countRows(steps, from.repeats, block, 1) }, block.end + 1);
 }
 
 /** How a chart row's runs are laid out: runs before the repeat, the repeat (worked `times` times), and after. */

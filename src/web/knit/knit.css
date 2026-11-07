@@ -75,6 +75,94 @@
   border-color: var(--accent);
   min-width: 110px;
 }
+.knit-nav button:active:not(:disabled),
+.counter-controls button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.knit-nav.browsing button.primary {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* A tap that landed: the step name and counts flash as they change. */
+@keyframes arrive {
+  from {
+    opacity: 0.25;
+    transform: translateY(4px);
+  }
+}
+@keyframes count-pop {
+  40% {
+    transform: scale(1.3);
+    color: var(--accent);
+  }
+}
+.step-label {
+  animation: arrive 0.25s ease-out;
+}
+.counter-count {
+  animation: count-pop 0.3s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-label,
+  .counter-count {
+    animation: none;
+  }
+}
+
+/* The second of two quick taps, dropped, with a way to count it after all */
+.tap-notice {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 8px 8px 8px 14px;
+  border-radius: 10px;
+  background: #2b2522;
+  color: white;
+  font-size: 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+.tap-notice button {
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.tap-notice button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.tap-notice button.quiet {
+  color: #ccc;
+}
+
+/* Reading ahead: how far from your place */
+.browse-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 6px 6px 6px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+}
+.browse-banner button {
+  white-space: nowrap;
+  color: var(--accent);
+  font-weight: 600;
+}
 button:disabled {
   opacity: 0.4;
   cursor: default;
@@ -245,15 +333,20 @@ button.quiet:hover {
   justify-content: space-between;
   align-items: baseline;
 }
-.repeat-until-count {
+.repeat-until-time {
   font-size: 13px;
-}
-.repeat-until-count b {
-  font-size: 18px;
 }
 .repeat-until-goal {
   font-size: 17px;
   margin-top: 2px;
+}
+.repeat-until-rows {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
 }
 .repeat-until-actions {
   display: flex;
@@ -918,8 +1011,13 @@ abbr[title] {
   font-size: 17px;
   border-radius: 10px;
 }
-.phone-footer .knit-nav button:first-child {
+.phone-footer .knit-nav button:first-child,
+.phone-footer .knit-nav.browsing button:last-child {
   flex: 0 0 64px;
+}
+.phone-footer .knit-nav button.read-ahead {
+  flex: 0 0 52px;
+  padding: 12px 0;
 }
 .phone-tabs {
   display: flex;

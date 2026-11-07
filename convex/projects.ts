@@ -2,9 +2,10 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requirePattern, requireProject } from "./access";
-import { position } from "./validators";
+import { position, repeats } from "./validators";
 
 const MAX_PROJECTS = 100;
+const MAX_REPEATS = 500;
 
 /** The signed-in user's projects, most recently worked on first. */
 export const list = query({
@@ -47,11 +48,13 @@ export const start = mutation({
   },
 });
 
+/** Save where the knitter is, and the rows counted in open-ended repeats (left as they are when omitted). */
 export const moveTo = mutation({
-  args: { projectId: v.id("projects"), position },
-  handler: async (ctx, { projectId, position }) => {
+  args: { projectId: v.id("projects"), position, repeats: v.optional(repeats) },
+  handler: async (ctx, { projectId, position, repeats }) => {
     await requireProject(ctx, projectId);
-    await ctx.db.patch("projects", projectId, { position, lastWorkedAt: Date.now() });
+    if (repeats && repeats.length > MAX_REPEATS) throw new Error(`At most ${MAX_REPEATS} repeats`);
+    await ctx.db.patch("projects", projectId, { position, ...(repeats && { repeats }), lastWorkedAt: Date.now() });
   },
 });
 

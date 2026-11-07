@@ -99,8 +99,15 @@ export const stitchCountCheck = v.object({
 export const position = v.object({
   step: v.number(),
   node: v.string(),
-  /** In an open-ended repeat ("until it measures 30 cm"): how many times the block has been worked before this pass. */
+  /** No longer written (repeat rows are counted in `repeats` now); older projects may still have it. */
   pass: v.optional(v.number()),
   /** Within a chart row: the run being worked, and which time through the row's repeat. */
   mark: v.optional(v.object({ run: v.number(), repeat: v.number() })),
 });
+
+/**
+ * Rows worked in each open-ended repeat ("until it measures 30 cm"), by the
+ * node of the repeat's first step. Kept apart from the position so reading
+ * ahead or stepping out of a repeat doesn't lose the count.
+ */
+export const repeats = v.array(v.object({ node: v.string(), rows: v.number() }));

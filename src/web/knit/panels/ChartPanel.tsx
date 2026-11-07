@@ -13,12 +13,12 @@ const ZOOMS = [0.75, 1, 1.25, 1.5, 2, 2.5, 3];
 /**
  * The chart for the current step with its row picked out, or the chart
  * coming up next. Fits the panel's width until you zoom; keeps the current
- * row in the middle of the view. Clicking a row jumps to that row's step.
+ * row in the middle of the view. Clicking a row reads that row's step.
  */
 export function ChartPanel() {
-  const { steps, index, step, position, charts, go } = useKnit();
+  const { steps, index, step, position, browsing, charts, go } = useKnit();
   const focus = chartFocus(steps, index);
-  const marked = position.mark && runsForStep(step, charts)?.runs[position.mark.run];
+  const marked = browsing ? undefined : position.mark && runsForStep(step, charts)?.runs[position.mark.run];
   const c = focus ? charts[focus.chartId] : undefined;
   const scroller = useRef<HTMLDivElement>(null);
   const width = useElementWidth(scroller);

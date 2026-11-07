@@ -7,6 +7,7 @@ import { runsForStep } from "./rowRuns";
  * Keys, ignored while typing in a field:
  * - → / j / space: next step; ← / k: previous step
  * - . / ,: next / previous run of stitches in a chart row; past the last run is the next step
+ * - Esc: back to your place after reading ahead
  */
 export function useStepKeys(knit: Knit | null) {
   useEffect(() => {
@@ -15,7 +16,7 @@ export function useStepKeys(knit: Knit | null) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const action = ACTIONS[e.key];
-      if (!action) return;
+      if (!action || (e.key === "Escape" && !knit.browsing)) return;
       // Also stops space from scrolling a panel or pressing a focused button.
       e.preventDefault();
       action(knit);
@@ -26,7 +27,7 @@ export function useStepKeys(knit: Knit | null) {
 }
 
 function nextRun(knit: Knit) {
-  const row = runsForStep(knit.step, knit.charts);
+  const row = !knit.browsing && runsForStep(knit.step, knit.charts);
   if (!row) return knit.next();
   const mark = nextMark(row.layout, knit.position.mark);
   if (mark) knit.setMark(mark);
@@ -34,7 +35,7 @@ function nextRun(knit: Knit) {
 }
 
 function prevRun(knit: Knit) {
-  const row = runsForStep(knit.step, knit.charts);
+  const row = !knit.browsing && runsForStep(knit.step, knit.charts);
   if (row) knit.setMark(prevMark(row.layout, knit.position.mark) ?? undefined);
 }
 
@@ -46,4 +47,5 @@ const ACTIONS: Record<string, (knit: Knit) => void> = {
   k: (k) => k.prev(),
   ".": nextRun,
   ",": prevRun,
+  Escape: (k) => k.backToPlace(),
 };

@@ -1,26 +1,32 @@
 import type { ExpandedStep } from "../../../shared/expand";
 import { useKnit } from "../KnitContext";
-import * as nav from "../navigation";
+import { rowsIn, untilBlock } from "../navigation";
 import { StepExtras } from "../notes/StepExtras";
 import { runsForStep } from "../rowRuns";
+import { BrowseBanner } from "./BrowseBanner";
 import { GlossaryText } from "./GlossaryText";
 import { RepeatUntil } from "./RepeatUntil";
 import { RowRunsView } from "./RowRunsView";
 
 /**
  * The current step, large: what to work, the chart row written out, and the
- * stitch count, with the previous and next steps for context.
+ * stitch count, with the previous and next steps for context. The step's
+ * name flashes when it changes, so a tap that landed is easy to see.
  */
 export function InstructionsPanel() {
-  const { steps, index, step, charts, position, prev, next, setMark } = useKnit();
+  const { steps, index, step, charts, position, repeats, browsing, neighbors, prev, next, setMark } = useKnit();
   if (!step) return <div className="panel-empty">No steps for this size and options.</div>;
   const chart = step.chart ? charts[step.chart.chartId]?.chart : undefined;
   // With a chart row, the generated row is what to work; the section's text is context.
   const row = runsForStep(step, charts);
+  // Looping a one-row repeat stays on the same step, so its count is part of what changes.
+  const block = untilBlock(steps, index);
+  const arrival = `${index}:${block ? rowsIn(steps, repeats, block) : ""}`;
 
   return (
     <div className="instructions-panel">
       <div className="step-now">
+        <BrowseBanner />
         <div className="step-where">
           <span>{step.section.title}</span>
           {step.of && step.of.count > 1 && (
@@ -29,12 +35,12 @@ export function InstructionsPanel() {
             </span>
           )}
         </div>
-        <StepLabel label={step.label} />
+        <StepLabel key={arrival} label={step.label} />
         <RepeatUntil />
 
         {row && chart && (
           <div className={`step-primary ${(step.chart?.text.length ?? 0) > 140 ? "long" : ""}`}>
-            <RowRunsView runs={row.runs} layout={row.layout} mark={position.mark} chart={chart} onMark={setMark} />
+            <RowRunsView runs={row.runs} layout={row.layout} mark={browsing ? undefined : position.mark} chart={chart} onMark={browsing ? undefined : setMark} />
           </div>
         )}
         {step.instruction && (
@@ -69,8 +75,8 @@ export function InstructionsPanel() {
       </div>
 
       <nav className="step-neighbors">
-        <Neighbor step={index > 0 || position.pass ? steps[nav.prev(steps, position).step] : undefined} direction="prev" onClick={prev} />
-        <Neighbor step={index < steps.length - 1 || nav.untilBlock(steps, index) ? steps[nav.next(steps, position).step] : undefined} direction="next" onClick={next} />
+        <Neighbor step={neighbors.prev === undefined ? undefined : steps[neighbors.prev]} direction="prev" onClick={prev} />
+        <Neighbor step={neighbors.next === undefined ? undefined : steps[neighbors.next]} direction="next" onClick={next} />
       </nav>
     </div>
   );

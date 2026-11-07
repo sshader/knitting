@@ -1,14 +1,37 @@
 import { useKnit } from "./KnitContext";
 import { untilBlock } from "./navigation";
 
-/** Previous and next; at the end of an open-ended repeat, "again" and "done" instead of next. */
+/**
+ * Previous and next, and a bookmark to read ahead; at the end of an
+ * open-ended repeat, "again" and "done" instead of next. While reading
+ * ahead, previous and next page through the pattern and the bookmark goes back.
+ */
 export function StepButtons() {
-  const { steps, index, position, next, prev, finishRepeat } = useKnit();
+  const { steps, index, browsing, neighbors, next, prev, finishRepeat, readAhead, backToPlace } = useKnit();
+  const back = (
+    <button onClick={prev} disabled={neighbors.prev === undefined} title="Previous (← or k)" aria-label="Previous step">
+      ←
+    </button>
+  );
+  if (browsing) {
+    return (
+      <div className="knit-nav browsing">
+        {back}
+        <button className="primary" onClick={backToPlace} title="Back to the step you're knitting (Esc)">
+          🔖 Back to my place
+        </button>
+        <button onClick={next} disabled={neighbors.next === undefined} title="Next (→, j, or space)" aria-label="Next step">
+          →
+        </button>
+      </div>
+    );
+  }
   const repeatEnds = untilBlock(steps, index)?.end === index;
   return (
     <div className="knit-nav">
-      <button onClick={prev} disabled={index === 0 && !position.pass} title="Previous (← or k)" aria-label="Previous step">
-        ←
+      {back}
+      <button className="read-ahead" onClick={readAhead} disabled={index >= steps.length - 1} title="Read ahead; your place stays bookmarked" aria-label="Read ahead">
+        🔖
       </button>
       {repeatEnds ? (
         <>
@@ -20,7 +43,7 @@ export function StepButtons() {
           </button>
         </>
       ) : (
-        <button className="primary" onClick={next} disabled={index >= steps.length - 1} title="Next (→, j, or space)">
+        <button className="primary" onClick={next} disabled={neighbors.next === undefined} title="Next (→, j, or space)">
           Next →
         </button>
       )}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
+import { CountControls } from "./CountControls";
 import type { useCounters } from "./useCounters";
 
 /** One counter: its name (click to rename), the count with big − and + buttons, and reset and delete. */
@@ -24,15 +25,7 @@ export function Counter({ counter, actions }: { counter: Doc<"counters">; action
         onBlur={rename}
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       />
-      <div className="counter-controls">
-        <button aria-label="Count down" disabled={counter.count === 0} onClick={() => void actions.bump({ counterId, by: -1 })}>
-          −
-        </button>
-        <span className="counter-count">{counter.count}</span>
-        <button className="primary" aria-label="Count up" onClick={() => void actions.bump({ counterId, by: 1 })}>
-          +
-        </button>
-      </div>
+      <CountControls id={counterId} count={counter.count} onCount={(by) => void actions.bump({ counterId, by })} />
       <div className="counter-menu">
         <button className="quiet" title="Reset to 0" disabled={counter.count === 0} onClick={() => confirmFirst(`Reset “${counter.label}” to 0?`, () => void actions.update({ counterId, count: 0 }))}>
           ↺

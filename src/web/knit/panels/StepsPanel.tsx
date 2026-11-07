@@ -5,9 +5,10 @@ import { groupSteps } from "../steps";
 /**
  * The whole pattern as an outline: sections, and within them each
  * instruction once ("Rounds 2-48") with how far through it you are.
+ * Tapping one reads it; while reading, a bookmark shows where your place is.
  */
 export function StepsPanel() {
-  const { steps, index, go } = useKnit();
+  const { steps, index, place, browsing, go } = useKnit();
   const groups = useMemo(() => groupSteps(steps), [steps]);
   const current = useRef<HTMLLIElement>(null);
 
@@ -19,7 +20,8 @@ export function StepsPanel() {
     <ol className="steps-outline">
       {groups.map((g, k) => {
         const isCurrent = index >= g.start && index < g.start + g.count;
-        const done = index >= g.start + g.count;
+        const done = place >= g.start + g.count;
+        const isPlace = browsing && place >= g.start && place < g.start + g.count;
         const newSection = k === 0 || groups[k - 1].section.id !== g.section.id;
         // Section headings are their own items so they stay pinned while the section scrolls by.
         const heading = newSection && (
@@ -31,7 +33,10 @@ export function StepsPanel() {
           heading,
           <li key={g.start} ref={isCurrent ? current : undefined} className={`${isCurrent ? "current" : ""} ${done ? "done" : ""}`}>
             <button onClick={() => go(g.start)}>
-              <span className="outline-label">{g.label}</span>
+              <span className="outline-label">
+                {isPlace && <span title="Your place">🔖 </span>}
+                {g.label}
+              </span>
               {g.count > 1 && <span className="outline-count">{isCurrent ? `${index - g.start + 1} / ${g.count}` : `${g.count} rows`}</span>}
             </button>
             {isCurrent && g.count > 1 && (
