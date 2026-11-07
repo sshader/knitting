@@ -3,6 +3,7 @@ import { useKnit } from "../KnitContext";
 import { rowsIn, untilBlock } from "../navigation";
 import { StepExtras } from "../notes/StepExtras";
 import { runsForStep } from "../rowRuns";
+import { TimeAgo } from "../TimeAgo";
 import { BrowseBanner } from "./BrowseBanner";
 import { GlossaryText } from "./GlossaryText";
 import { RepeatUntil } from "./RepeatUntil";
@@ -14,7 +15,7 @@ import { RowRunsView } from "./RowRunsView";
  * name flashes when it changes, so a tap that landed is easy to see.
  */
 export function InstructionsPanel() {
-  const { steps, index, step, charts, position, repeats, browsing, neighbors, prev, next, setMark } = useKnit();
+  const { project, steps, index, step, charts, position, repeats, browsing, neighbors, prev, next, setMark } = useKnit();
   if (!step) return <div className="panel-empty">No steps for this size and options.</div>;
   const chart = step.chart ? charts[step.chart.chartId]?.chart : undefined;
   // With a chart row, the generated row is what to work; the section's text is context.
@@ -36,6 +37,11 @@ export function InstructionsPanel() {
           )}
         </div>
         <StepLabel key={arrival} label={step.label} />
+        {!browsing && (
+          <div className="step-moved">
+            Moved here <TimeAgo time={project.lastWorkedAt} />
+          </div>
+        )}
         <RepeatUntil />
 
         {row && chart && (

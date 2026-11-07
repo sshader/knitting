@@ -14,8 +14,8 @@ const run = (taps: [key: string, at: number][]) => {
 describe("tap guard", () => {
   test("a quick second tap is held", () => expect(run([["next", 0], ["next", 200]])).toEqual([1, 0]));
   test("a third quick tap counts the held one too, and later taps count once", () => {
-    expect(run([["next", 0], ["next", 200], ["next", 400], ["next", 600]])).toEqual([1, 0, 2, 1]);
+    expect(run([["next", 0], ["next", 700], ["next", 1400], ["next", 2100]])).toEqual([1, 0, 2, 1]);
   });
-  test("unhurried taps all count", () => expect(run([["next", 0], ["next", 800], ["next", 1600]])).toEqual([1, 1, 1]));
+  test("unhurried taps all count", () => expect(run([["next", 0], ["next", 1200], ["next", 2400]])).toEqual([1, 1, 1]));
   test("a different button starts a new burst", () => expect(run([["next", 0], ["prev", 100], ["next", 200]])).toEqual([1, 1, 1]));
 });

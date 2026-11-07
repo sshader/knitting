@@ -12,7 +12,7 @@ export function useProject(projectId: Id<"projects">) {
     () =>
       moveTo.withOptimisticUpdate((store, { projectId, position, repeats }) => {
         const current = store.getQuery(api.projects.get, { projectId });
-        if (current) store.setQuery(api.projects.get, { projectId }, { ...current, position, ...(repeats && { repeats }) });
+        if (current) store.setQuery(api.projects.get, { projectId }, { ...current, position, ...(repeats && { repeats }), lastWorkedAt: Date.now() });
       }),
     [moveTo],
   );

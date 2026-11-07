@@ -161,6 +161,8 @@ export default defineSchema({
     node: v.union(v.string(), v.null()),
     label: v.string(),
     count: v.number(),
+    /** When the count last changed; missing on counters not counted since this was added. */
+    countedAt: v.optional(v.number()),
   }).index("by_projectId", ["projectId"]),
 
   /** The knitter's notes: one per instruction (`node`), and one for the whole project (null). */

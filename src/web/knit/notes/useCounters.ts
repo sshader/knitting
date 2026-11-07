@@ -25,9 +25,9 @@ export function useCounters(projectId: Id<"projects">) {
     return {
       counters,
       add: (node: string | null, label: string) => void add({ projectId, node, label }),
-      bump: bump.withOptimisticUpdate((store, { counterId, by }) => edit(store, counterId, (c) => ({ ...c, count: Math.max(0, c.count + by) }))),
+      bump: bump.withOptimisticUpdate((store, { counterId, by }) => edit(store, counterId, (c) => ({ ...c, count: Math.max(0, c.count + by), countedAt: Date.now() }))),
       update: update.withOptimisticUpdate((store, { counterId, label, count }) =>
-        edit(store, counterId, (c) => ({ ...c, ...(label !== undefined && { label }), ...(count !== undefined && { count }) })),
+        edit(store, counterId, (c) => ({ ...c, ...(label !== undefined && { label }), ...(count !== undefined && { count, countedAt: Date.now() }) })),
       ),
       remove: remove.withOptimisticUpdate((store, { counterId }) => edit(store, counterId, () => null)),
     };

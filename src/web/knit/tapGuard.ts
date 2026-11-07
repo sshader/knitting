@@ -6,7 +6,7 @@
  */
 
 /** Taps of the same button closer together than this are one burst. */
-export const BURST_MS = 500;
+export const BURST_MS = 1000;
 
 export interface Burst {
   key: string;

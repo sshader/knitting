@@ -35,7 +35,7 @@ export const bump = mutation({
   args: { counterId: v.id("counters"), by: v.number() },
   handler: async (ctx, { counterId, by }) => {
     const counter = await requireCounter(ctx, counterId);
-    await ctx.db.patch("counters", counterId, { count: Math.max(0, counter.count + by) });
+    await ctx.db.patch("counters", counterId, { count: Math.max(0, counter.count + by), countedAt: Date.now() });
   },
 });
 
@@ -45,7 +45,7 @@ export const update = mutation({
     await requireCounter(ctx, counterId);
     await ctx.db.patch("counters", counterId, {
       ...(label !== undefined && { label: label.trim().slice(0, 100) }),
-      ...(count !== undefined && { count: Math.max(0, Math.round(count)) }),
+      ...(count !== undefined && { count: Math.max(0, Math.round(count)), countedAt: Date.now() }),
     });
   },
 });
